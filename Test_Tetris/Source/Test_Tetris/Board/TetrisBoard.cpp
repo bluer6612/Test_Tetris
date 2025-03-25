@@ -170,30 +170,39 @@ bool ATetrisBoard::HasCollision(const FVector& Location)
         return false; // ActiveBlock이 없으면 충돌 없음
     }
 
+    // 땅 충돌 기준 변경: 여기서는 땅을 Z = 50.0f로 취급합니다.
+    const float GroundLevel = 50.0f;
+
     for (UStaticMeshComponent* Mesh : ActiveBlock->GetBlockMeshes())
     {
-        // 블록의 새로운 위치 계산
-        FVector BlockLocation = Mesh->GetComponentLocation() + (Location - ActiveBlock->GetActorLocation());
+        // 회전 후 각 큐브의 상대 위치를 기준으로 보드상의 절대 위치 계산
+        FVector RelativeLocation = Mesh->GetRelativeLocation();
+        FVector BlockLocation = Location + RelativeLocation;
 
-        // 보드 경계 충돌 감지
-        if (BlockLocation.Y < 0.0f || BlockLocation.Y >= BoardWidth * 100.0f || BlockLocation.Z <= 0.0f)
+        // 보드 경계 충돌 감지 (Y축)
+        if (BlockLocation.Y < 0.0f || BlockLocation.Y >= BoardWidth * 100.0f)
         {
             return true; // 보드 경계를 벗어남
         }
 
-        // 다른 블록과의 충돌 감지
+        // 땅(바닥) 충돌 감지: 블럭이 땅(Z = 50.0f) 아래로 내려가면 충돌로 판단
+        if (BlockLocation.Z < GroundLevel)
+        {
+            return true;
+        }
+
+        // 다른 블록과의 충돌 감지 (Y, Z축 격자 기준)
         int YIndex = FMath::FloorToInt(BlockLocation.Y / 100.0f);
         int ZIndex = FMath::FloorToInt(BlockLocation.Z / 100.0f);
 
         if (YIndex >= 0 && YIndex < BoardWidth && ZIndex >= 0 && ZIndex < BoardHeight)
         {
-            if (Board[YIndex][ZIndex]) // 해당 위치에 블록이 이미 존재하면 충돌
+            if (Board[YIndex][ZIndex]) // 이미 블록이 존재하면 충돌
             {
                 return true;
             }
         }
     }
-
     return false; // 충돌 없음
 }
 
@@ -288,7 +297,14 @@ void ATetrisBoard::RotateBlock()
             float NewZ = RelativeLocation.Y;
 
             // 새로운 위치 설정 (중심점 기준으로 이동)
-            Mesh->SetRelativeLocation(FVector(RelativeLocation.X, NewY, NewZ) + BlockCenter);
+            FVector NewLocation = FVector(RelativeLocation.X, NewY, NewZ) + BlockCenter;
+
+            // 격자에 맞게 위치 보정
+            NewLocation.X = FMath::RoundToFloat(NewLocation.X / 100.0f) * 100.0f;
+            NewLocation.Y = FMath::RoundToFloat(NewLocation.Y / 100.0f) * 100.0f;
+            NewLocation.Z = FMath::RoundToFloat(NewLocation.Z / 100.0f) * 100.0f;
+
+            Mesh->SetRelativeLocation(NewLocation);
         }
 
         // 충돌 감지
