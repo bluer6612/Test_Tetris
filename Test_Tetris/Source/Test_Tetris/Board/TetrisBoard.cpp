@@ -1,9 +1,9 @@
 #include "TetrisBoard.h"
-#include "../Blocks/TetrisBlock.h" // TetrisBlock 클래스의 경로
-#include "Engine/World.h"       // GetWorld() 함수 사용
-#include "UObject/ConstructorHelpers.h" // ConstructorHelpers 사용 시 필요
-#include "GameFramework/Actor.h" // AActor 관련 기능
-#include "Engine/Engine.h"       // UE_LOG 사용 시 필요
+#include "../Blocks/TetrisBlock.h"
+#include "Engine/World.h"
+#include "UObject/ConstructorHelpers.h"
+#include "GameFramework/Actor.h"
+#include "Engine/Engine.h"
 
 ATetrisBoard::ATetrisBoard()
 {
@@ -27,17 +27,14 @@ void ATetrisBoard::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    // 현재 활성 블록이 있는 경우 아래로 이동
     if (ActiveBlock)
     {
         FVector NewLocation = ActiveBlock->GetActorLocation();
-        NewLocation.Z -= 100.0f * DeltaTime; // DeltaTime을 곱해 부드럽게 이동
+        NewLocation.Z -= 100.0f * DeltaTime; // 아래로 이동
         ActiveBlock->SetActorLocation(NewLocation);
 
-        // 충돌 감지 (예: 바닥에 닿았는지 확인)
         if (HasCollision(NewLocation))
         {
-            // 블록을 멈추고 새로운 블록 스폰
             ActiveBlock->SetActorLocation(NewLocation + FVector(0, 0, 100.0f)); // 원래 위치로 복구
             SpawnBlock();
         }
@@ -48,15 +45,12 @@ void ATetrisBoard::SpawnBlock()
 {
     if (GetWorld())
     {
-        // 블록의 스폰 위치 설정
         FVector SpawnLocation = FVector(0.0f, 0.0f, 300.0f); // 보드 위쪽
         FRotator SpawnRotation = FRotator::ZeroRotator;
 
-        // 블록 클래스가 설정되어 있는지 확인
         if (BlockClass)
         {
-            // 블록 생성
-            GetWorld()->SpawnActor<ATetrisBlock>(BlockClass, SpawnLocation, SpawnRotation);
+            ActiveBlock = GetWorld()->SpawnActor<ATetrisBlock>(BlockClass, SpawnLocation, SpawnRotation);
             UE_LOG(LogTemp, Warning, TEXT("New block spawned at location: %s"), *SpawnLocation.ToString());
         }
         else
@@ -66,14 +60,8 @@ void ATetrisBoard::SpawnBlock()
     }
 }
 
-void ATetrisBoard::ClearFullRows()
-{
-    UE_LOG(LogTemp, Warning, TEXT("Full rows cleared"));
-}
-
 bool ATetrisBoard::HasCollision(const FVector& Location)
 {
-    // 간단한 충돌 감지: Z 좌표가 0 이하로 내려가면 충돌로 간주
     if (Location.Z <= 0.0f)
     {
         return true;
@@ -83,14 +71,9 @@ bool ATetrisBoard::HasCollision(const FVector& Location)
     return false;
 }
 
-void ATetrisBoard::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ATetrisBoard::ClearFullRows()
 {
-    Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-    PlayerInputComponent->BindAction("MoveLeft", IE_Pressed, this, &ATetrisBoard::MoveLeft);
-    PlayerInputComponent->BindAction("MoveRight", IE_Pressed, this, &ATetrisBoard::MoveRight);
-    PlayerInputComponent->BindAction("MoveDown", IE_Pressed, this, &ATetrisBoard::MoveDown);
-    PlayerInputComponent->BindAction("Rotate", IE_Pressed, this, &ATetrisBoard::RotateBlock);
+    UE_LOG(LogTemp, Warning, TEXT("Full rows cleared"));
 }
 
 void ATetrisBoard::MoveLeft()

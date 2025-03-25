@@ -4,9 +4,6 @@
 ATetrisBlock::ATetrisBlock()
 {
     PrimaryActorTick.bCanEverTick = true;
-
-    // Pawn이 입력을 받을 수 있도록 AutoPossessPlayer 설정
-    AutoPossessPlayer = EAutoReceiveInput::Player0;
 }
 
 void ATetrisBlock::BeginPlay()
@@ -35,16 +32,6 @@ void ATetrisBlock::Rotate()
     SetActorRotation(NewRotation);
 
     UE_LOG(LogTemp, Warning, TEXT("Block rotated to: %s"), *NewRotation.ToString());
-}
-
-void ATetrisBlock::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-    Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-    PlayerInputComponent->BindAction("MoveLeft", IE_Pressed, this, &ATetrisBlock::MoveLeft);
-    PlayerInputComponent->BindAction("MoveRight", IE_Pressed, this, &ATetrisBlock::MoveRight);
-    PlayerInputComponent->BindAction("MoveDown", IE_Pressed, this, &ATetrisBlock::MoveDown);
-    PlayerInputComponent->BindAction("Rotate", IE_Pressed, this, &ATetrisBlock::Rotate);
 }
 
 void ATetrisBlock::MoveLeft()

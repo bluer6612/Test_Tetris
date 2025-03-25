@@ -2,17 +2,15 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "TetrisBoard.generated.h"
-
-class ATetrisBlock;
+#include "TetrisBlock.generated.h"
 
 UCLASS()
-class TEST_TETRIS_API ATetrisBoard : public AActor
+class TEST_TETRIS_API ATetrisBlock : public AActor
 {
     GENERATED_BODY()
 
 public:
-    ATetrisBoard();
+    ATetrisBlock();
 
 protected:
     virtual void BeginPlay() override;
@@ -20,15 +18,8 @@ protected:
 public:
     virtual void Tick(float DeltaTime) override;
 
-private:
-    void SpawnBlock();
-    void ClearFullRows();
-    bool HasCollision(const FVector& Location); // 충돌 감지 함수
-
-public:
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tetris")
-    TSubclassOf<ATetrisBlock> BlockClass;
-
-private:
-    ATetrisBlock* ActiveBlock; // 현재 활성 블록
+    void MoveLeft();
+    void MoveRight();
+    void MoveDown();
+    void Rotate();
 };
