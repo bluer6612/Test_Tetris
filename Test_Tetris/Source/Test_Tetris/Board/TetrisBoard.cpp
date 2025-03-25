@@ -27,6 +27,12 @@ void ATetrisBoard::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
+    if (bIsGameOver)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Game is over. No further actions."));
+        return;
+    }
+
     if (ActiveBlock)
     {
         FVector NewLocation = ActiveBlock->GetActorLocation();
@@ -36,6 +42,7 @@ void ATetrisBoard::Tick(float DeltaTime)
         if (HasCollision(NewLocation))
         {
             ActiveBlock->SetActorLocation(NewLocation + FVector(0, 0, 100.0f)); // 원래 위치로 복구
+            ClearFullRows(); // 줄 제거
             SpawnBlock();
         }
     }
@@ -51,6 +58,16 @@ void ATetrisBoard::SpawnBlock()
         if (BlockClass)
         {
             ActiveBlock = GetWorld()->SpawnActor<ATetrisBlock>(BlockClass, SpawnLocation, SpawnRotation);
+
+            // 블록이 상단에 닿으면 게임 오버
+            FVector BlockLocation = ActiveBlock->GetActorLocation();
+            if (HasCollision(BlockLocation))
+            {
+                bIsGameOver = true;
+                UE_LOG(LogTemp, Error, TEXT("Game Over!"));
+                return;
+            }
+
             UE_LOG(LogTemp, Warning, TEXT("New block spawned at location: %s"), *SpawnLocation.ToString());
         }
         else
@@ -73,7 +90,50 @@ bool ATetrisBoard::HasCollision(const FVector& Location)
 
 void ATetrisBoard::ClearFullRows()
 {
-    UE_LOG(LogTemp, Warning, TEXT("Full rows cleared"));
+    for (int y = 0; y < BoardHeight; ++y)
+    {
+        bool bIsRowFull = true;
+
+        // 현재 줄이 가득 찼는지 확인
+        for (int x = 0; x < BoardWidth; ++x)
+        {
+            if (!Board[x][y])
+            {
+                bIsRowFull = false;
+                break;
+            }
+        }
+
+        // 가득 찬 줄 제거
+        if (bIsRowFull)
+        {
+            // 현재 줄 제거
+            for (int x = 0; x < BoardWidth; ++x)
+            {
+                Board[x][y] = false;
+            }
+
+            // 위의 블록들을 아래로 이동
+            for (int yy = y; yy < BoardHeight - 1; ++yy)
+            {
+                for (int x = 0; x < BoardWidth; ++x)
+                {
+                    Board[x][yy] = Board[x][yy + 1];
+                }
+            }
+
+            // 맨 위 줄 초기화
+            for (int x = 0; x < BoardWidth; ++x)
+            {
+                Board[x][BoardHeight - 1] = false;
+            }
+
+            UE_LOG(LogTemp, Warning, TEXT("Row %d cleared!"), y);
+
+            // 한 줄 제거 후 다시 확인
+            --y;
+        }
+    }
 }
 
 void ATetrisBoard::MoveLeft()
