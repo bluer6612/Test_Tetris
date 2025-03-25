@@ -33,7 +33,7 @@ void ATetrisBoard::BeginPlay()
         if (CameraActor)
         {
             // 카메라 위치와 방향 설정
-            CameraActor->SetActorLocation(FVector(-2500.0f, 0.0f, 1000.0f)); // 블록 정면을 더 넓게 볼 수 있는 위치
+            CameraActor->SetActorLocation(FVector(-2500.0f, 500.0f, 1000.0f)); // 블록 정면을 더 넓게 볼 수 있는 위치
             CameraActor->SetActorRotation(FRotator(0.0f, 0.0f, 0.0f));    // 블록을 향하도록 회전
 
             // 카메라를 뷰 타겟으로 설정
@@ -278,17 +278,17 @@ void ATetrisBoard::RotateBlock()
         }
         BlockCenter /= ActiveBlock->GetBlockMeshes().Num(); // 중심점 계산
 
-        // 각 큐브의 상대 위치를 기준으로 90도 회전
+        // 각 큐브의 상대 위치를 기준으로 X축 회전
         for (UStaticMeshComponent* Mesh : ActiveBlock->GetBlockMeshes())
         {
             FVector RelativeLocation = Mesh->GetRelativeLocation() - BlockCenter;
 
-            // 2D 회전 변환 (Z축은 고정)
-            float NewX = -RelativeLocation.Y;
-            float NewY = RelativeLocation.X;
+            // X축 기준으로 90도 회전 변환
+            float NewY = -RelativeLocation.Z;
+            float NewZ = RelativeLocation.Y;
 
             // 새로운 위치 설정 (중심점 기준으로 이동)
-            Mesh->SetRelativeLocation(FVector(NewX, NewY, RelativeLocation.Z) + BlockCenter);
+            Mesh->SetRelativeLocation(FVector(RelativeLocation.X, NewY, NewZ) + BlockCenter);
         }
 
         // 충돌 감지
