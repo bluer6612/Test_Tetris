@@ -23,7 +23,7 @@ protected:
 public:
     virtual void Tick(float DeltaTime) override;
 
-    // 블록 이동 및 회전 함수
+    // 입력 이벤트 처리 함수
     void MoveLeft();
     void MoveRight();
     void MoveDown();

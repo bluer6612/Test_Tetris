@@ -20,6 +20,15 @@ ATetrisBoard::ATetrisBoard()
 void ATetrisBoard::BeginPlay()
 {
     Super::BeginPlay();
+
+    // 입력 바인딩 설정
+    EnableInput(GetWorld()->GetFirstPlayerController());
+
+    InputComponent->BindAction("MoveLeft", IE_Pressed, this, &ATetrisBoard::MoveLeft);
+    InputComponent->BindAction("MoveRight", IE_Pressed, this, &ATetrisBoard::MoveRight);
+    InputComponent->BindAction("MoveDown", IE_Pressed, this, &ATetrisBoard::MoveDown);
+    InputComponent->BindAction("Rotate", IE_Pressed, this, &ATetrisBoard::RotateBlock);
+
     SpawnBlock();
 }
 
@@ -39,7 +48,7 @@ void ATetrisBoard::Tick(float DeltaTime)
     if (ActiveBlock && TimeSinceLastFall >= BlockFallInterval)
     {
         FVector NewLocation = ActiveBlock->GetActorLocation();
-        NewLocation.Z -= 10.0f; // 아래로 이동
+        //NewLocation.Z -= 10.0f; // 아래로 이동
         ActiveBlock->SetActorLocation(NewLocation);
 
         TimeSinceLastFall = 0.0f; // 시간 초기화
@@ -155,7 +164,10 @@ void ATetrisBoard::MoveLeft()
     {
         FVector NewLocation = ActiveBlock->GetActorLocation();
         NewLocation.X -= 100.0f; // 왼쪽으로 이동
-        ActiveBlock->SetActorLocation(NewLocation);
+        if (!HasCollision(NewLocation))
+        {
+            ActiveBlock->SetActorLocation(NewLocation);
+        }
     }
 }
 
@@ -165,7 +177,10 @@ void ATetrisBoard::MoveRight()
     {
         FVector NewLocation = ActiveBlock->GetActorLocation();
         NewLocation.X += 100.0f; // 오른쪽으로 이동
-        ActiveBlock->SetActorLocation(NewLocation);
+        if (!HasCollision(NewLocation))
+        {
+            ActiveBlock->SetActorLocation(NewLocation);
+        }
     }
 }
 
@@ -175,7 +190,17 @@ void ATetrisBoard::MoveDown()
     {
         FVector NewLocation = ActiveBlock->GetActorLocation();
         NewLocation.Z -= 100.0f; // 아래로 이동
-        ActiveBlock->SetActorLocation(NewLocation);
+        if (!HasCollision(NewLocation))
+        {
+            ActiveBlock->SetActorLocation(NewLocation);
+        }
+        else
+        {
+            // 충돌 시 블록 고정 및 새로운 블록 생성
+            ActiveBlock->SetActorLocation(NewLocation + FVector(0, 0, 100.0f)); // 원래 위치로 복구
+            ClearFullRows(); // 줄 제거
+            SpawnBlock(); // 새로운 블록 생성
+        }
     }
 }
 
@@ -186,5 +211,13 @@ void ATetrisBoard::RotateBlock()
         FRotator NewRotation = ActiveBlock->GetActorRotation();
         NewRotation.Yaw += 90.0f; // 90도 회전
         ActiveBlock->SetActorRotation(NewRotation);
+
+        // 충돌 감지
+        if (HasCollision(ActiveBlock->GetActorLocation()))
+        {
+            // 충돌 시 회전 취소
+            NewRotation.Yaw -= 90.0f;
+            ActiveBlock->SetActorRotation(NewRotation);
+        }
     }
 }
