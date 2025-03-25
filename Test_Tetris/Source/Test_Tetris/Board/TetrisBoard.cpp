@@ -1,4 +1,6 @@
 #include "TetrisBoard.h"
+#include "TetrisBlock.h"
+#include "Engine/World.h"
 
 ATetrisBoard::ATetrisBoard()
 {
@@ -18,7 +20,20 @@ void ATetrisBoard::Tick(float DeltaTime)
 
 void ATetrisBoard::SpawnBlock()
 {
-    UE_LOG(LogTemp, Warning, TEXT("New block spawned"));
+    if (GetWorld())
+    {
+        // 블록의 스폰 위치 설정
+        FVector SpawnLocation = FVector(0.0f, 0.0f, 300.0f); // 보드 위쪽
+        FRotator SpawnRotation = FRotator::ZeroRotator;
+
+        // 블록 클래스가 설정되어 있는지 확인
+        if (BlockClass)
+        {
+            // 블록 생성
+            GetWorld()->SpawnActor<ATetrisBlock>(BlockClass, SpawnLocation, SpawnRotation);
+            UE_LOG(LogTemp, Warning, TEXT("New block spawned at location: %s"), *SpawnLocation.ToString());
+        }
+    }
 }
 
 void ATetrisBoard::ClearFullRows()

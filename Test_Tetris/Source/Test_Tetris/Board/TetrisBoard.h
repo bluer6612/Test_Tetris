@@ -4,9 +4,9 @@
 #include "GameFramework/Actor.h"
 #include "TetrisBoard.generated.h"
 
-/**
- * Represents the Tetris board
- */
+// 블록 클래스 선언
+class ATetrisBlock;
+
 UCLASS()
 class TEST_TETRIS_API ATetrisBoard : public AActor
 {
@@ -24,4 +24,9 @@ public:
 private:
     void SpawnBlock();
     void ClearFullRows();
+
+public:
+    // 블록 클래스를 설정할 수 있는 변수
+    UPROPERTY(EditAnywhere, Category = "Tetris")
+    TSubclassOf<ATetrisBlock> BlockClass;
 };
