@@ -65,52 +65,66 @@ void ATetrisBoard::Tick(float DeltaTime)
 
 void ATetrisBoard::SpawnBlock()
 {
-    if (GetWorld())
+    if (ActiveBlock)
     {
-        FVector SpawnLocation = FVector(0.0f, 0.0f, BoardHeight * 100.0f); // 보드 위쪽
-        FRotator SpawnRotation = FRotator::ZeroRotator;
-
-        if (BlockClass)
+        // 현재 블록의 위치를 보드 상태에 반영
+        for (UStaticMeshComponent* Mesh : ActiveBlock->GetBlockMeshes())
         {
-            ActiveBlock = GetWorld()->SpawnActor<ATetrisBlock>(BlockClass, SpawnLocation, SpawnRotation);
+            FVector BlockLocation = Mesh->GetComponentLocation();
+            int XIndex = FMath::FloorToInt(BlockLocation.X / 100.0f);
+            int ZIndex = FMath::FloorToInt(BlockLocation.Z / 100.0f);
 
-            if (ActiveBlock)
+            if (XIndex >= 0 && XIndex < BoardWidth && ZIndex >= 0 && ZIndex < BoardHeight)
             {
-                TArray<FVector> BlockShape;
-                int RandomShape = FMath::RandRange(0, 2); // 0~2 사이의 랜덤 값
-                switch (RandomShape)
-                {
-                case 0:
-                    BlockShape = IBlock;
-                    break;
-                case 1:
-                    BlockShape = TBlock;
-                    break;
-                case 2:
-                    BlockShape = LBlock;
-                    break;
-                }
-
-                ActiveBlock->InitializeBlock(BlockShape);
-
-                // 게임 오버 감지
-                if (HasCollision(ActiveBlock->GetActorLocation()))
-                {
-                    bIsGameOver = true;
-                    UE_LOG(LogTemp, Error, TEXT("Game Over!"));
-                }
-
-                UE_LOG(LogTemp, Warning, TEXT("New block spawned at location: %s"), *SpawnLocation.ToString());
+                Board[XIndex][ZIndex] = true; // 해당 위치를 차지했다고 표시
             }
-            else
+        }
+    }
+
+    // 새로운 블록 생성
+    FVector SpawnLocation = FVector(0.0f, 0.0f, BoardHeight * 100.0f); // 보드 위쪽
+    FRotator SpawnRotation = FRotator::ZeroRotator;
+
+    if (BlockClass)
+    {
+        ActiveBlock = GetWorld()->SpawnActor<ATetrisBlock>(BlockClass, SpawnLocation, SpawnRotation);
+
+        if (ActiveBlock)
+        {
+            TArray<FVector> BlockShape;
+            int RandomShape = FMath::RandRange(0, 2); // 0~2 사이의 랜덤 값
+            switch (RandomShape)
             {
-                UE_LOG(LogTemp, Error, TEXT("Failed to spawn ActiveBlock!"));
+            case 0:
+                BlockShape = IBlock;
+                break;
+            case 1:
+                BlockShape = TBlock;
+                break;
+            case 2:
+                BlockShape = LBlock;
+                break;
             }
+
+            ActiveBlock->InitializeBlock(BlockShape);
+
+            // 게임 오버 감지
+            if (HasCollision(ActiveBlock->GetActorLocation()))
+            {
+                bIsGameOver = true;
+                UE_LOG(LogTemp, Error, TEXT("Game Over!"));
+            }
+
+            UE_LOG(LogTemp, Warning, TEXT("New block spawned at location: %s"), *SpawnLocation.ToString());
         }
         else
         {
-            UE_LOG(LogTemp, Error, TEXT("BlockClass is not set!"));
+            UE_LOG(LogTemp, Error, TEXT("Failed to spawn ActiveBlock!"));
         }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("BlockClass is not set!"));
     }
 }
 
@@ -173,15 +187,29 @@ void ATetrisBoard::MoveDown()
     if (ActiveBlock)
     {
         FVector Offset = FVector(0.0f, 0.0f, -100.0f); // 아래로 이동
-        if (!HasCollision(ActiveBlock->GetActorLocation() + Offset))
+        FVector NewLocation = ActiveBlock->GetActorLocation() + Offset;
+
+        if (!HasCollision(NewLocation))
         {
             ActiveBlock->Move(Offset);
         }
         else
         {
             // 충돌 시 블록 고정 및 새로운 블록 생성
-            ClearFullRows();
-            SpawnBlock();
+            for (UStaticMeshComponent* Mesh : ActiveBlock->GetBlockMeshes())
+            {
+                FVector BlockLocation = Mesh->GetComponentLocation();
+                int XIndex = FMath::FloorToInt(BlockLocation.X / 100.0f);
+                int ZIndex = FMath::FloorToInt(BlockLocation.Z / 100.0f);
+
+                if (XIndex >= 0 && XIndex < BoardWidth && ZIndex >= 0 && ZIndex < BoardHeight)
+                {
+                    Board[XIndex][ZIndex] = true; // 해당 위치를 차지했다고 표시
+                }
+            }
+
+            ClearFullRows(); // 줄 제거
+            SpawnBlock(); // 새로운 블록 생성
         }
     }
 }
@@ -190,11 +218,21 @@ void ATetrisBoard::RotateBlock()
 {
     if (ActiveBlock)
     {
-        ActiveBlock->Rotate();
+        // 현재 블록의 회전 상태 저장
+        FRotator CurrentRotation = ActiveBlock->GetActorRotation();
+
+        // Z축 기준으로 90도 회전
+        FRotator NewRotation = CurrentRotation;
+        NewRotation.Yaw += 90.0f;
+
+        // 블록 회전 적용
+        ActiveBlock->SetActorRotation(NewRotation);
+
+        // 충돌 감지
         if (HasCollision(ActiveBlock->GetActorLocation()))
         {
             // 충돌 시 회전 취소
-            ActiveBlock->Rotate(); // 다시 회전하여 원래 상태로 복구
+            ActiveBlock->SetActorRotation(CurrentRotation);
         }
     }
 }

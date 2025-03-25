@@ -34,4 +34,6 @@ private:
 
     UPROPERTY(EditAnywhere)
     TArray<UStaticMeshComponent*> BlockMeshes; // 블록을 구성하는 큐브들
+
+    int32 RotationState = 0; // 현재 회전 상태 (0: 0도, 1: 90도, 2: 180도, 3: 270도)
 };
