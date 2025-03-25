@@ -39,7 +39,7 @@ void ATetrisBoard::Tick(float DeltaTime)
     if (ActiveBlock && TimeSinceLastFall >= BlockFallInterval)
     {
         FVector NewLocation = ActiveBlock->GetActorLocation();
-        NewLocation.Z -= 100.0f; // 아래로 이동
+        NewLocation.Z -= 10.0f; // 아래로 이동
         ActiveBlock->SetActorLocation(NewLocation);
 
         TimeSinceLastFall = 0.0f; // 시간 초기화
@@ -73,7 +73,7 @@ void ATetrisBoard::SpawnBlock()
     }
 
     // 새로운 블록 생성
-    FVector SpawnLocation = FVector(0.0f, 0.0f, 500.0f); // 보드 위쪽
+    FVector SpawnLocation = FVector(0.0f, 0.0f, 2500.0f); // 보드 위쪽
     FRotator SpawnRotation = FRotator::ZeroRotator;
 
     if (BlockClass)
@@ -121,20 +121,22 @@ void ATetrisBoard::SpawnBlock()
 
 bool ATetrisBoard::HasCollision(const FVector& Location)
 {
-    // 보드 경계 충돌 감지
-    if (Location.X < 0.0f || Location.X >= BoardWidth * 100.0f || Location.Z <= 0.0f)
-    {
-        return true;
-    }
-
-    // 보드 상태를 기반으로 충돌 감지
     int XIndex = FMath::FloorToInt(Location.X / 100.0f);
     int ZIndex = FMath::FloorToInt(Location.Z / 100.0f);
 
+    UE_LOG(LogTemp, Warning, TEXT("Checking collision at X: %d, Z: %d"), XIndex, ZIndex);
+
+    if (Location.X < 0.0f || Location.X >= BoardWidth * 100.0f || Location.Z <= 0.0f)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Collision with board boundary detected."));
+        return true;
+    }
+
     if (XIndex >= 0 && XIndex < BoardWidth && ZIndex >= 0 && ZIndex < BoardHeight)
     {
-        if (Board[XIndex][ZIndex]) // 해당 위치에 블록이 이미 존재하면 충돌
+        if (Board[XIndex][ZIndex])
         {
+            UE_LOG(LogTemp, Warning, TEXT("Collision with existing block detected."));
             return true;
         }
     }
