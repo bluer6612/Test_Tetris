@@ -210,26 +210,47 @@ bool ATetrisBoard::HasCollision(const FVector& Location)
 void ATetrisBoard::ClearFullRows()
 {
     int NumRowsCleared = 0;
-    // 하단 행(인덱스 0)부터 상단(인덱스 BoardWidth-1)까지 검사합니다.
+    
+    // 플레이어블 영역 설정 (Z축 기준)
+    const int32 PlayableStartCol = 0;  // 검사 시작 열 (예: 0)
+    const int32 PlayableWidth = BoardWidth;     // 실제 사용되는 열의 개수 (예: 4)
+
+    // 각 행 상태 디버깅을 위해 전체 행 출력 (전체 BoardHeight로 출력)
     for (int32 row = 0; row < BoardWidth; row++)
     {
-        bool bIsFull = true;
-        // 해당 행의 모든 열(0 ~ BoardHeight-1)이 채워져 있는지 검사
+        FString RowState;
+        int TotalTrue = 0;
         for (int32 col = 0; col < BoardHeight; col++)
         {
-            if (!Board[row][col])
+            bool cell = Board[row][col];
+            RowState += (cell ? "1" : "0");
+            if (cell)
             {
-                bIsFull = false;
-                break;
+                TotalTrue++;
             }
         }
-
-        if (bIsFull)
+        UE_LOG(LogTemp, Warning, TEXT("Row %d: %s (Total true: %d)"), row, *RowState, TotalTrue);
+    }
+    
+    // 하단 행(인덱스 0)부터 상단(인덱스 BoardWidth-1)까지 검사 (Y축이 행)
+    for (int32 row = 0; row < BoardWidth; row++)
+    {
+        int TrueCount = 0;
+        // 플레이어블 영역만 검사
+        for (int32 col = PlayableStartCol; col < PlayableStartCol + PlayableWidth; col++)
         {
-            UE_LOG(LogTemp, Warning, TEXT("Row %d is full."), row);
+            if (Board[row][col])
+            {
+                TrueCount++;
+            }
+        }
+        // 플레이어블 영역의 모든 셀이 true라면 해당 행은 완성됨
+        if (TrueCount == PlayableWidth)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Row %d is full and will be cleared."), row);
             NumRowsCleared++;
-
-            // 현재 행(row) 이상(즉, 더 높은 행들)을 한 칸씩 아래로 내립니다.
+            
+            // 현재 행(row)보다 위쪽에 위치한 행들을 한 칸씩 내려줍니다.
             for (int32 r = row; r < BoardWidth - 1; r++)
             {
                 for (int32 col = 0; col < BoardHeight; col++)
@@ -237,12 +258,12 @@ void ATetrisBoard::ClearFullRows()
                     Board[r][col] = Board[r + 1][col];
                 }
             }
-            // 최상단 행은 빈 칸(false)로 초기화
+            // 최상단 행은 빈 상태로 초기화
             for (int32 col = 0; col < BoardHeight; col++)
             {
                 Board[BoardWidth - 1][col] = false;
             }
-            // 행이 삭제되었으므로 다시 같은 row 인덱스부터 검사
+            // 삭제 후, 같은 row 인덱스를 다시 검사합니다.
             row--;
         }
     }
