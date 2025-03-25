@@ -210,41 +210,43 @@ bool ATetrisBoard::HasCollision(const FVector& Location)
 void ATetrisBoard::ClearFullRows()
 {
     int NumRowsCleared = 0;
-    // 이제 Y축이 행이므로, Y 인덱스(0 ~ BoardWidth-1) 순회
-    for (int32 y = 0; y < BoardWidth; y++)
+    // 하단 행(인덱스 0)부터 상단(인덱스 BoardWidth-1)까지 검사합니다.
+    for (int32 row = 0; row < BoardWidth; row++)
     {
         bool bIsFull = true;
-        // 해당 행의 모든 셀이 채워져 있는지 검사 (Z축: 0 ~ BoardHeight-1)
-        for (int32 z = 0; z < BoardHeight; z++)
+        // 해당 행의 모든 열(0 ~ BoardHeight-1)이 채워져 있는지 검사
+        for (int32 col = 0; col < BoardHeight; col++)
         {
-            if (!Board[y][z])
+            if (!Board[row][col])
             {
                 bIsFull = false;
                 break;
             }
         }
-        // 행이 모두 채워져 있다면 해당 행을 삭제하고 위쪽 행들을 내려줌
+
         if (bIsFull)
         {
+            UE_LOG(LogTemp, Warning, TEXT("Row %d is full."), row);
             NumRowsCleared++;
-            // 현재 행 y부터 위쪽 행들을 한 칸씩 아래로 이동
-            for (int32 curY = y; curY < BoardWidth - 1; curY++)
+
+            // 현재 행(row) 이상(즉, 더 높은 행들)을 한 칸씩 아래로 내립니다.
+            for (int32 r = row; r < BoardWidth - 1; r++)
             {
-                for (int32 z = 0; z < BoardHeight; z++)
+                for (int32 col = 0; col < BoardHeight; col++)
                 {
-                    Board[curY][z] = Board[curY + 1][z];
+                    Board[r][col] = Board[r + 1][col];
                 }
             }
-            // 최상단 행 (BoardWidth - 1)은 빈칸(false)로 초기화
-            for (int32 z = 0; z < BoardHeight; z++)
+            // 최상단 행은 빈 칸(false)로 초기화
+            for (int32 col = 0; col < BoardHeight; col++)
             {
-                Board[BoardWidth - 1][z] = false;
+                Board[BoardWidth - 1][col] = false;
             }
-            // 행이 삭제되었으므로, 같은 y 인덱스를 다시 검사
-            y--;
+            // 행이 삭제되었으므로 다시 같은 row 인덱스부터 검사
+            row--;
         }
     }
-    UE_LOG(LogTemp, Warning, TEXT("Full rows cleared: %d"), NumRowsCleared);
+    UE_LOG(LogTemp, Warning, TEXT("Total full rows cleared: %d"), NumRowsCleared);
 }
 
 void ATetrisBoard::MoveLeft()
