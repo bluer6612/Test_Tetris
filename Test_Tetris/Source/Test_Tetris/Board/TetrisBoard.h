@@ -27,6 +27,6 @@ private:
 
 public:
     // 블록 클래스를 설정할 수 있는 변수
-    UPROPERTY(EditAnywhere, Category = "Tetris")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tetris")
     TSubclassOf<ATetrisBlock> BlockClass;
 };

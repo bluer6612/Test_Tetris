@@ -4,6 +4,9 @@
 ATetrisBlock::ATetrisBlock()
 {
     PrimaryActorTick.bCanEverTick = true;
+
+    // Pawn이 입력을 받을 수 있도록 AutoPossessPlayer 설정
+    AutoPossessPlayer = EAutoReceiveInput::Player0;
 }
 
 void ATetrisBlock::BeginPlay()
