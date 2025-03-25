@@ -27,6 +27,7 @@ public:
     void MoveRight();
     void MoveDown();
     void RotateBlock();
+    void HardDrop();
 
 private:
     void SpawnBlock(); // 블록 생성
