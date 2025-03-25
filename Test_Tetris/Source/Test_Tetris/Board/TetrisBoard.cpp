@@ -33,11 +33,15 @@ void ATetrisBoard::Tick(float DeltaTime)
         return;
     }
 
-    if (ActiveBlock)
+    TimeSinceLastFall += DeltaTime;
+
+    if (ActiveBlock && TimeSinceLastFall >= BlockFallInterval)
     {
         FVector NewLocation = ActiveBlock->GetActorLocation();
-        NewLocation.Z -= 100.0f * DeltaTime; // 아래로 이동
+        NewLocation.Z -= 100.0f; // 아래로 이동
         ActiveBlock->SetActorLocation(NewLocation);
+
+        TimeSinceLastFall = 0.0f; // 시간 초기화
 
         if (HasCollision(NewLocation))
         {
@@ -61,7 +65,6 @@ void ATetrisBoard::SpawnBlock()
 
             if (ActiveBlock)
             {
-                // 랜덤한 블록 모양 선택
                 TArray<FVector> BlockShape;
                 int RandomShape = FMath::RandRange(0, 2); // 0~2 사이의 랜덤 값
                 switch (RandomShape)
@@ -78,6 +81,13 @@ void ATetrisBoard::SpawnBlock()
                 }
 
                 ActiveBlock->InitializeBlock(BlockShape);
+
+                // 게임 오버 감지
+                if (HasCollision(ActiveBlock->GetActorLocation()))
+                {
+                    bIsGameOver = true;
+                    UE_LOG(LogTemp, Error, TEXT("Game Over!"));
+                }
 
                 UE_LOG(LogTemp, Warning, TEXT("New block spawned at location: %s"), *SpawnLocation.ToString());
             }
@@ -102,6 +112,18 @@ bool ATetrisBoard::HasCollision(const FVector& Location)
     }
 
     // TODO: 다른 블록과의 충돌 감지 로직 추가
+    // 예: Board 배열을 사용하여 충돌 여부 확인
+    int XIndex = FMath::FloorToInt(Location.X / 100.0f);
+    int ZIndex = FMath::FloorToInt(Location.Z / 100.0f);
+
+    if (XIndex >= 0 && XIndex < BoardWidth && ZIndex >= 0 && ZIndex < BoardHeight)
+    {
+        if (Board[XIndex][ZIndex])
+        {
+            return true;
+        }
+    }
+
     return false;
 }
 
