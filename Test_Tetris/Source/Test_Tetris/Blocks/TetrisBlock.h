@@ -23,6 +23,9 @@ public:
     void MoveLeft();
     void MoveRight();
 
+    // BlockMeshes에 접근할 수 있는 Getter 함수
+    const TArray<UStaticMeshComponent*>& GetBlockMeshes() const;
+
 private:
     UPROPERTY(VisibleAnywhere)
     UStaticMesh* CubeMesh; // 큐브 메쉬

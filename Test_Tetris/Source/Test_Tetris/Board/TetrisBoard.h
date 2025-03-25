@@ -70,6 +70,6 @@ public:
 private:
     ATetrisBlock* ActiveBlock; // 현재 활성 블록
     bool bIsGameOver = false; // 게임 오버 상태
-    float BlockFallInterval = 0.5f; // 블록이 내려오는 간격 (초 단위)
-    float TimeSinceLastFall = 0.0f; // 마지막으로 블록이 내려온 이후 경과 시간
+    float BlockFallInterval = 1.0f; // 블록이 내려오는 간격 (초 단위)
+    float TimeSinceLastFall = 1.0f; // 마지막으로 블록이 내려온 이후 경과 시간
 };

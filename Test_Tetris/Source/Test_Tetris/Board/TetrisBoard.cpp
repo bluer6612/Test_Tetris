@@ -33,6 +33,7 @@ void ATetrisBoard::Tick(float DeltaTime)
         return;
     }
 
+    // 블록이 일정 간격으로만 내려가도록 시간 누적
     TimeSinceLastFall += DeltaTime;
 
     if (ActiveBlock && TimeSinceLastFall >= BlockFallInterval)
@@ -43,63 +44,78 @@ void ATetrisBoard::Tick(float DeltaTime)
 
         TimeSinceLastFall = 0.0f; // 시간 초기화
 
+        // 충돌 감지
         if (HasCollision(NewLocation))
         {
             ActiveBlock->SetActorLocation(NewLocation + FVector(0, 0, 100.0f)); // 원래 위치로 복구
             ClearFullRows(); // 줄 제거
-            SpawnBlock();
+            SpawnBlock(); // 새로운 블록 생성
         }
     }
 }
 
 void ATetrisBoard::SpawnBlock()
 {
-    if (GetWorld())
+    if (ActiveBlock)
     {
-        FVector SpawnLocation = FVector(0.0f, 0.0f, 500.0f); // 보드 위쪽
-        FRotator SpawnRotation = FRotator::ZeroRotator;
-
-        if (BlockClass)
+        // 현재 블록의 위치를 보드 상태에 반영
+        for (UStaticMeshComponent* Mesh : ActiveBlock->GetBlockMeshes())
         {
-            ActiveBlock = GetWorld()->SpawnActor<ATetrisBlock>(BlockClass, SpawnLocation, SpawnRotation);
+            FVector BlockLocation = Mesh->GetComponentLocation();
+            int XIndex = FMath::FloorToInt(BlockLocation.X / 100.0f);
+            int ZIndex = FMath::FloorToInt(BlockLocation.Z / 100.0f);
 
-            if (ActiveBlock)
+            if (XIndex >= 0 && XIndex < BoardWidth && ZIndex >= 0 && ZIndex < BoardHeight)
             {
-                TArray<FVector> BlockShape;
-                int RandomShape = FMath::RandRange(0, 2); // 0~2 사이의 랜덤 값
-                switch (RandomShape)
-                {
-                case 0:
-                    BlockShape = IBlock;
-                    break;
-                case 1:
-                    BlockShape = TBlock;
-                    break;
-                case 2:
-                    BlockShape = LBlock;
-                    break;
-                }
-
-                ActiveBlock->InitializeBlock(BlockShape);
-
-                // 게임 오버 감지
-                if (HasCollision(ActiveBlock->GetActorLocation()))
-                {
-                    bIsGameOver = true;
-                    UE_LOG(LogTemp, Error, TEXT("Game Over!"));
-                }
-
-                UE_LOG(LogTemp, Warning, TEXT("New block spawned at location: %s"), *SpawnLocation.ToString());
+                Board[XIndex][ZIndex] = true; // 해당 위치를 차지했다고 표시
             }
-            else
+        }
+    }
+
+    // 새로운 블록 생성
+    FVector SpawnLocation = FVector(0.0f, 0.0f, 500.0f); // 보드 위쪽
+    FRotator SpawnRotation = FRotator::ZeroRotator;
+
+    if (BlockClass)
+    {
+        ActiveBlock = GetWorld()->SpawnActor<ATetrisBlock>(BlockClass, SpawnLocation, SpawnRotation);
+
+        if (ActiveBlock)
+        {
+            TArray<FVector> BlockShape;
+            int RandomShape = FMath::RandRange(0, 2); // 0~2 사이의 랜덤 값
+            switch (RandomShape)
             {
-                UE_LOG(LogTemp, Error, TEXT("Failed to spawn ActiveBlock!"));
+            case 0:
+                BlockShape = IBlock;
+                break;
+            case 1:
+                BlockShape = TBlock;
+                break;
+            case 2:
+                BlockShape = LBlock;
+                break;
             }
+
+            ActiveBlock->InitializeBlock(BlockShape);
+
+            // 게임 오버 감지
+            if (HasCollision(ActiveBlock->GetActorLocation()))
+            {
+                bIsGameOver = true;
+                UE_LOG(LogTemp, Error, TEXT("Game Over!"));
+            }
+
+            UE_LOG(LogTemp, Warning, TEXT("New block spawned at location: %s"), *SpawnLocation.ToString());
         }
         else
         {
-            UE_LOG(LogTemp, Error, TEXT("BlockClass is not set!"));
+            UE_LOG(LogTemp, Error, TEXT("Failed to spawn ActiveBlock!"));
         }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("BlockClass is not set!"));
     }
 }
 
@@ -111,14 +127,13 @@ bool ATetrisBoard::HasCollision(const FVector& Location)
         return true;
     }
 
-    // TODO: 다른 블록과의 충돌 감지 로직 추가
-    // 예: Board 배열을 사용하여 충돌 여부 확인
+    // 보드 상태를 기반으로 충돌 감지
     int XIndex = FMath::FloorToInt(Location.X / 100.0f);
     int ZIndex = FMath::FloorToInt(Location.Z / 100.0f);
 
     if (XIndex >= 0 && XIndex < BoardWidth && ZIndex >= 0 && ZIndex < BoardHeight)
     {
-        if (Board[XIndex][ZIndex])
+        if (Board[XIndex][ZIndex]) // 해당 위치에 블록이 이미 존재하면 충돌
         {
             return true;
         }

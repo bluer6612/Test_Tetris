@@ -82,3 +82,8 @@ void ATetrisBlock::MoveRight()
 
     UE_LOG(LogTemp, Warning, TEXT("Block moved right to: %s"), *NewLocation.ToString());
 }
+
+const TArray<UStaticMeshComponent*>& ATetrisBlock::GetBlockMeshes() const
+{
+    return BlockMeshes;
+}
