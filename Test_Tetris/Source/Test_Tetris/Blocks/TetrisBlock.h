@@ -1,19 +1,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Pawn.h" // AActor 대신 APawn을 상속받기 위해 변경
-#include "TetrisBlock.generated.h"
+#include "GameFramework/Actor.h"
+#include "TetrisBoard.generated.h"
 
-/**
- * Represents a single Tetris block
- */
+class ATetrisBlock;
+
 UCLASS()
-class TEST_TETRIS_API ATetrisBlock : public APawn // APawn으로 변경
+class TEST_TETRIS_API ATetrisBoard : public AActor
 {
     GENERATED_BODY()
 
 public:
-    ATetrisBlock();
+    ATetrisBoard();
 
 protected:
     virtual void BeginPlay() override;
@@ -21,12 +20,15 @@ protected:
 public:
     virtual void Tick(float DeltaTime) override;
 
-    // 블록 이동 및 회전 함수
-    void MoveLeft();
-    void MoveRight();
-    void MoveDown();
-    void Rotate();
+private:
+    void SpawnBlock();
+    void ClearFullRows();
+    bool HasCollision(const FVector& Location); // 충돌 감지 함수
 
-    // 입력 컴포넌트 설정
-    virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+public:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tetris")
+    TSubclassOf<ATetrisBlock> BlockClass;
+
+private:
+    ATetrisBlock* ActiveBlock; // 현재 활성 블록
 };
