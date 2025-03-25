@@ -18,8 +18,15 @@ protected:
 public:
     virtual void Tick(float DeltaTime) override;
 
+    void InitializeBlock(const TArray<FVector>& BlockShape);
+    void Rotate();
     void MoveLeft();
     void MoveRight();
-    void MoveDown();
-    void Rotate();
+
+private:
+    UPROPERTY(VisibleAnywhere)
+    UStaticMesh* CubeMesh; // 큐브 메쉬
+
+    UPROPERTY(EditAnywhere)
+    TArray<UStaticMeshComponent*> BlockMeshes; // 블록을 구성하는 큐브들
 };

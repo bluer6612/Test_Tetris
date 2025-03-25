@@ -61,8 +61,9 @@ void ATetrisBoard::SpawnBlock()
 
             if (ActiveBlock)
             {
+                // 랜덤한 블록 모양 선택
                 TArray<FVector> BlockShape;
-                int RandomShape = FMath::RandRange(0, 2);
+                int RandomShape = FMath::RandRange(0, 2); // 0~2 사이의 랜덤 값
                 switch (RandomShape)
                 {
                 case 0:
@@ -78,13 +79,16 @@ void ATetrisBoard::SpawnBlock()
 
                 ActiveBlock->InitializeBlock(BlockShape);
 
-                // 게임 오버 감지
-                if (HasCollision(ActiveBlock->GetActorLocation()))
-                {
-                    bIsGameOver = true;
-                    UE_LOG(LogTemp, Error, TEXT("Game Over!"));
-                }
+                UE_LOG(LogTemp, Warning, TEXT("New block spawned at location: %s"), *SpawnLocation.ToString());
             }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("Failed to spawn ActiveBlock!"));
+            }
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("BlockClass is not set!"));
         }
     }
 }
@@ -98,67 +102,12 @@ bool ATetrisBoard::HasCollision(const FVector& Location)
     }
 
     // TODO: 다른 블록과의 충돌 감지 로직 추가
-    // 예: Board 배열을 사용하여 충돌 여부 확인
-    int XIndex = FMath::FloorToInt(Location.X / 100.0f);
-    int ZIndex = FMath::FloorToInt(Location.Z / 100.0f);
-
-    if (XIndex >= 0 && XIndex < BoardWidth && ZIndex >= 0 && ZIndex < BoardHeight)
-    {
-        if (Board[XIndex][ZIndex])
-        {
-            return true;
-        }
-    }
-
     return false;
 }
 
 void ATetrisBoard::ClearFullRows()
 {
-    for (int y = 0; y < BoardHeight; ++y)
-    {
-        bool bIsRowFull = true;
-
-        // 현재 줄이 가득 찼는지 확인
-        for (int x = 0; x < BoardWidth; ++x)
-        {
-            if (!Board[x][y])
-            {
-                bIsRowFull = false;
-                break;
-            }
-        }
-
-        // 가득 찬 줄 제거
-        if (bIsRowFull)
-        {
-            // 현재 줄 제거
-            for (int x = 0; x < BoardWidth; ++x)
-            {
-                Board[x][y] = false;
-            }
-
-            // 위의 블록들을 아래로 이동
-            for (int yy = y; yy < BoardHeight - 1; ++yy)
-            {
-                for (int x = 0; x < BoardWidth; ++x)
-                {
-                    Board[x][yy] = Board[x][yy + 1];
-                }
-            }
-
-            // 맨 위 줄 초기화
-            for (int x = 0; x < BoardWidth; ++x)
-            {
-                Board[x][BoardHeight - 1] = false;
-            }
-
-            UE_LOG(LogTemp, Warning, TEXT("Row %d cleared!"), y);
-
-            // 한 줄 제거 후 다시 확인
-            --y;
-        }
-    }
+    UE_LOG(LogTemp, Warning, TEXT("Full rows cleared"));
 }
 
 void ATetrisBoard::MoveLeft()
@@ -197,14 +146,6 @@ void ATetrisBoard::RotateBlock()
     {
         FRotator NewRotation = ActiveBlock->GetActorRotation();
         NewRotation.Yaw += 90.0f; // 90도 회전
-
-        // 회전 후 충돌 감지
         ActiveBlock->SetActorRotation(NewRotation);
-        if (HasCollision(ActiveBlock->GetActorLocation()))
-        {
-            // 충돌이 발생하면 회전을 취소
-            NewRotation.Yaw -= 90.0f;
-            ActiveBlock->SetActorRotation(NewRotation);
-        }
     }
 }
