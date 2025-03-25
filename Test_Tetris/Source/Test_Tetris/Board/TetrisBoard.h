@@ -47,9 +47,16 @@ private:
     // 테트리스 블록 모양 정의
     TArray<FVector> IBlock = {
         FVector(0, 0, 0),
+        FVector(0, 0, 100),
+        FVector(0, 0, 200),
+        FVector(0, 0, 300)
+    };
+
+    TArray<FVector> OBlock = {
+        FVector(0, 0, 0),
         FVector(100, 0, 0),
-        FVector(-100, 0, 0),
-        FVector(-200, 0, 0)
+        FVector(0, 0, 100),
+        FVector(100, 0, 100)
     };
 
     TArray<FVector> TBlock = {
@@ -64,6 +71,27 @@ private:
         FVector(100, 0, 0),
         FVector(-100, 0, 0),
         FVector(-100, 0, 100)
+    };
+
+    TArray<FVector> JBlock = {
+        FVector(0, 0, 0),
+        FVector(100, 0, 0),
+        FVector(-100, 0, 0),
+        FVector(100, 0, 100)
+    };
+
+    TArray<FVector> SBlock = {
+        FVector(0, 0, 0),
+        FVector(100, 0, 0),
+        FVector(0, 0, 100),
+        FVector(-100, 0, 100)
+    };
+
+    TArray<FVector> ZBlock = {
+        FVector(0, 0, 0),
+        FVector(-100, 0, 0),
+        FVector(0, 0, 100),
+        FVector(100, 0, 100)
     };
 
 public:
