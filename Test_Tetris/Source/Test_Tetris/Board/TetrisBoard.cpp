@@ -27,8 +27,6 @@ void ATetrisBoard::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    UE_LOG(LogTemp, Warning, TEXT("DeltaTime: %f"), DeltaTime);
-
     if (bIsGameOver)
     {
         UE_LOG(LogTemp, Warning, TEXT("Game is over. No further actions."));
@@ -63,28 +61,55 @@ void ATetrisBoard::SpawnBlock()
 
             if (ActiveBlock)
             {
-                UE_LOG(LogTemp, Warning, TEXT("New block spawned at location: %s"), *SpawnLocation.ToString());
+                TArray<FVector> BlockShape;
+                int RandomShape = FMath::RandRange(0, 2);
+                switch (RandomShape)
+                {
+                case 0:
+                    BlockShape = IBlock;
+                    break;
+                case 1:
+                    BlockShape = TBlock;
+                    break;
+                case 2:
+                    BlockShape = LBlock;
+                    break;
+                }
+
+                ActiveBlock->InitializeBlock(BlockShape);
+
+                // 게임 오버 감지
+                if (HasCollision(ActiveBlock->GetActorLocation()))
+                {
+                    bIsGameOver = true;
+                    UE_LOG(LogTemp, Error, TEXT("Game Over!"));
+                }
             }
-            else
-            {
-                UE_LOG(LogTemp, Error, TEXT("Failed to spawn ActiveBlock!"));
-            }
-        }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("BlockClass is not set!"));
         }
     }
 }
 
 bool ATetrisBoard::HasCollision(const FVector& Location)
 {
-    if (Location.Z <= 0.0f)
+    // 보드 경계 충돌 감지
+    if (Location.X < 0.0f || Location.X >= BoardWidth * 100.0f || Location.Z <= 0.0f)
     {
         return true;
     }
 
     // TODO: 다른 블록과의 충돌 감지 로직 추가
+    // 예: Board 배열을 사용하여 충돌 여부 확인
+    int XIndex = FMath::FloorToInt(Location.X / 100.0f);
+    int ZIndex = FMath::FloorToInt(Location.Z / 100.0f);
+
+    if (XIndex >= 0 && XIndex < BoardWidth && ZIndex >= 0 && ZIndex < BoardHeight)
+    {
+        if (Board[XIndex][ZIndex])
+        {
+            return true;
+        }
+    }
+
     return false;
 }
 
@@ -172,6 +197,14 @@ void ATetrisBoard::RotateBlock()
     {
         FRotator NewRotation = ActiveBlock->GetActorRotation();
         NewRotation.Yaw += 90.0f; // 90도 회전
+
+        // 회전 후 충돌 감지
         ActiveBlock->SetActorRotation(NewRotation);
+        if (HasCollision(ActiveBlock->GetActorLocation()))
+        {
+            // 충돌이 발생하면 회전을 취소
+            NewRotation.Yaw -= 90.0f;
+            ActiveBlock->SetActorRotation(NewRotation);
+        }
     }
 }
