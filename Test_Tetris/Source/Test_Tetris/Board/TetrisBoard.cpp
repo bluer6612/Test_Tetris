@@ -27,6 +27,8 @@ void ATetrisBoard::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
+    UE_LOG(LogTemp, Warning, TEXT("DeltaTime: %f"), DeltaTime);
+
     if (bIsGameOver)
     {
         UE_LOG(LogTemp, Warning, TEXT("Game is over. No further actions."));
@@ -52,23 +54,21 @@ void ATetrisBoard::SpawnBlock()
 {
     if (GetWorld())
     {
-        FVector SpawnLocation = FVector(0.0f, 0.0f, 300.0f); // 보드 위쪽
+        FVector SpawnLocation = FVector(0.0f, 0.0f, 500.0f); // 보드 위쪽
         FRotator SpawnRotation = FRotator::ZeroRotator;
 
         if (BlockClass)
         {
             ActiveBlock = GetWorld()->SpawnActor<ATetrisBlock>(BlockClass, SpawnLocation, SpawnRotation);
 
-            // 블록이 상단에 닿으면 게임 오버
-            FVector BlockLocation = ActiveBlock->GetActorLocation();
-            if (HasCollision(BlockLocation))
+            if (ActiveBlock)
             {
-                bIsGameOver = true;
-                UE_LOG(LogTemp, Error, TEXT("Game Over!"));
-                return;
+                UE_LOG(LogTemp, Warning, TEXT("New block spawned at location: %s"), *SpawnLocation.ToString());
             }
-
-            UE_LOG(LogTemp, Warning, TEXT("New block spawned at location: %s"), *SpawnLocation.ToString());
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("Failed to spawn ActiveBlock!"));
+            }
         }
         else
         {
