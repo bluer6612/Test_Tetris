@@ -18,10 +18,12 @@ protected:
 public:
     virtual void Tick(float DeltaTime) override;
 
+    // 블록 초기화 함수
     void InitializeBlock(const TArray<FVector>& BlockShape);
+
+    // 블록 동작 함수
+    void Move(const FVector& Offset);
     void Rotate();
-    void MoveLeft();
-    void MoveRight();
 
     // BlockMeshes에 접근할 수 있는 Getter 함수
     const TArray<UStaticMeshComponent*>& GetBlockMeshes() const;

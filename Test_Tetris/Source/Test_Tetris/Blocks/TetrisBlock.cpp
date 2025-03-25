@@ -22,11 +22,6 @@ void ATetrisBlock::BeginPlay()
 void ATetrisBlock::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-
-    FVector NewLocation = GetActorLocation();
-    NewLocation.Z -= 100.0f; // 아래로 이동
-    SetActorLocation(NewLocation);
-    UE_LOG(LogTemp, Warning, TEXT("Block moved down to: %s"), *NewLocation.ToString());
 }
 
 void ATetrisBlock::InitializeBlock(const TArray<FVector>& BlockShape)
@@ -50,10 +45,23 @@ void ATetrisBlock::InitializeBlock(const TArray<FVector>& BlockShape)
             NewMesh->SetStaticMesh(CubeMesh);
             NewMesh->SetupAttachment(RootComponent);
             NewMesh->SetRelativeLocation(Offset);
+
+            // 중력 및 물리 시뮬레이션 비활성화
+            NewMesh->SetSimulatePhysics(false);
+            NewMesh->SetEnableGravity(false);
+
             NewMesh->RegisterComponent();
             BlockMeshes.Add(NewMesh);
         }
     }
+}
+
+void ATetrisBlock::Move(const FVector& Offset)
+{
+    FVector NewLocation = GetActorLocation() + Offset;
+    SetActorLocation(NewLocation);
+
+    UE_LOG(LogTemp, Warning, TEXT("Block moved to: %s"), *NewLocation.ToString());
 }
 
 void ATetrisBlock::Rotate()
@@ -63,24 +71,6 @@ void ATetrisBlock::Rotate()
     SetActorRotation(NewRotation);
 
     UE_LOG(LogTemp, Warning, TEXT("Block rotated to: %s"), *NewRotation.ToString());
-}
-
-void ATetrisBlock::MoveLeft()
-{
-    FVector NewLocation = GetActorLocation();
-    NewLocation.X -= 100.0f; // 왼쪽으로 이동
-    SetActorLocation(NewLocation);
-
-    UE_LOG(LogTemp, Warning, TEXT("Block moved left to: %s"), *NewLocation.ToString());
-}
-
-void ATetrisBlock::MoveRight()
-{
-    FVector NewLocation = GetActorLocation();
-    NewLocation.X += 100.0f; // 오른쪽으로 이동
-    SetActorLocation(NewLocation);
-
-    UE_LOG(LogTemp, Warning, TEXT("Block moved right to: %s"), *NewLocation.ToString());
 }
 
 const TArray<UStaticMeshComponent*>& ATetrisBlock::GetBlockMeshes() const

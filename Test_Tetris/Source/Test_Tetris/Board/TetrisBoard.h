@@ -8,7 +8,6 @@
 // 블록 클래스 선언
 class ATetrisBlock;
 
-
 UCLASS()
 class TEST_TETRIS_API ATetrisBoard : public AActor
 {
@@ -41,6 +40,10 @@ private:
     // 보드 상태를 저장하는 2D 배열
     bool Board[BoardWidth][BoardHeight] = { false };
 
+    // 블록 이동 관련 변수
+    float BlockFallInterval = 0.5f; // 블록이 내려오는 간격 (초 단위)
+    float TimeSinceLastFall = 0.0f; // 마지막으로 블록이 내려온 이후 경과 시간
+
     // 테트리스 블록 모양 정의
     TArray<FVector> IBlock = {
         FVector(0, 0, 0),
@@ -70,6 +73,4 @@ public:
 private:
     ATetrisBlock* ActiveBlock; // 현재 활성 블록
     bool bIsGameOver = false; // 게임 오버 상태
-    float BlockFallInterval = 3.0f; // 블록이 내려오는 간격 (초 단위)
-    float TimeSinceLastFall = 1.0f; // 마지막으로 블록이 내려온 이후 경과 시간
 };
