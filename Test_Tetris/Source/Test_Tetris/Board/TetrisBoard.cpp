@@ -60,7 +60,7 @@ void ATetrisBoard::Tick(float DeltaTime)
 
     if (bIsGameOver)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Game is over. No further actions."));
+        UE_LOG(LogTemp, Warning, TEXT("Game over."));
         return;
     }
 
@@ -100,7 +100,7 @@ void ATetrisBoard::SpawnBlock()
     }
 
     // 새로운 블록 생성 (보드 중앙 위쪽)
-    FVector SpawnLocation = FVector(0.f, (BoardWidth / 2) * 100.f, BoardHeight * 100.f);
+    FVector SpawnLocation = FVector(0.f, (BoardWidth / 2) * 100.f, BoardHeight * 100.f - 50.f);
     FRotator SpawnRotation = FRotator::ZeroRotator;
     if (BlockClass)
     {
@@ -219,16 +219,12 @@ bool ATetrisBoard::IsBlockTouchingGround(ATetrisBlock* Block)
         return false;
     }
     
-    // 땅 기준 Z값 (0으로 설정)
-    const float GroundLevel = 0.0f;
-    
-    // 각 컴포넌트의 바운드를 계산
+    const float GroundLevel = 0.0f; // '땅' 기준 X값 0
     for (UStaticMeshComponent* Mesh : Block->GetBlockMeshes())
     {
-        // Bounds는 이미 월드 공간의 바운드를 제공하므로,
-        // 최소 Z값이 GroundLevel 이하이면 땅과 닿은 것으로 판단
         FBoxSphereBounds Bounds = Mesh->Bounds;
-        if (Bounds.Origin.Z - Bounds.BoxExtent.Z <= GroundLevel)
+        // X축 기준 최소값 계산
+        if (Bounds.Origin.X - Bounds.BoxExtent.X <= GroundLevel)
         {
             return true;
         }
@@ -236,31 +232,39 @@ bool ATetrisBoard::IsBlockTouchingGround(ATetrisBlock* Block)
     return false;
 }
 
-// 블록의 가장 낮은 Z값을 계산하고, 바닥으로부터 50.0f 위에 위치시킵니다.
 void ATetrisBoard::AdjustBlockAboveGround(ATetrisBlock* Block)
 {
     if (!Block)
     {
+        UE_LOG(LogTemp, Warning, TEXT("AdjustBlockAboveGround 호출 시, Block이 nullptr입니다."));
         return;
     }
-
+    
     float MinZ = FLT_MAX;
     for (UStaticMeshComponent* Mesh : Block->GetBlockMeshes())
     {
         FBoxSphereBounds Bounds = Mesh->Bounds;
         float MeshMinZ = Bounds.Origin.Z - Bounds.BoxExtent.Z;
+        UE_LOG(LogTemp, Log, TEXT("메시 최소 Z값: %.1f"), MeshMinZ);
         if (MeshMinZ < MinZ)
         {
             MinZ = MeshMinZ;
         }
     }
-
-    // 만약 블록의 최소 Z값이 50보다 낮다면, 50까지의 차이만큼 위로 이동
-    float OffsetZ = 50.f - MinZ; 
+    UE_LOG(LogTemp, Log, TEXT("블록의 계산된 최소 Z값: %.1f"), MinZ);
+    
+    // 블록의 최소 Z값을 0.0f로 만들기 위해 필요한 오프셋 계산 (즉, 0.0f - MinZ)
+    float OffsetZ = 0.f - MinZ;
+    UE_LOG(LogTemp, Log, TEXT("계산된 OffsetZ: %.1f"), OffsetZ);
+    
     if (OffsetZ > 0.f)
     {
         Block->SetActorLocation(Block->GetActorLocation() + FVector(0.f, 0.f, OffsetZ));
-        UE_LOG(LogTemp, Log, TEXT("Block adjusted upward by %.1f to keep 50.f offset from ground."), OffsetZ);
+        UE_LOG(LogTemp, Log, TEXT("블록이 위로 %.1f 만큼 이동되었습니다 (땅과 정확히 맞닿음)."), OffsetZ);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Log, TEXT("블록의 최소 높이가 이미 0.0f 이상입니다."));
     }
 }
 
@@ -342,9 +346,9 @@ void ATetrisBoard::ClearFullRows()
             }
             z--;
         }
-        UE_LOG(LogTemp, Warning, TEXT("Height %d: %s (True count: %d)"), z, *RowState, TrueCount);
+        //UE_LOG(LogTemp, Warning, TEXT("Height %d: %s (True count: %d)"), z, *RowState, TrueCount);
     }
-    UE_LOG(LogTemp, Warning, TEXT("Total rows cleared: %d"), NumRowsCleared);
+    UE_LOG(LogTemp, Warning, TEXT("터진 줄의 갯수: %d"), NumRowsCleared);
 }
 
 void ATetrisBoard::MoveLeft()
@@ -394,6 +398,9 @@ void ATetrisBoard::MoveDown()
         }
         else
         {
+            // 충돌 시 먼저 블록의 위치를 조정합니다.
+            //AdjustBlockAboveGround(ActiveBlock);
+            
             // 충돌 시 블록을 보드에 고정하고 새 블록 생성
             for (UStaticMeshComponent* Mesh : ActiveBlock->GetBlockMeshes())
             {
@@ -470,6 +477,9 @@ void ATetrisBoard::HardDrop()
     {
         ActiveBlock->Move(Offset);
     }
+    // 충돌 시 블록의 위치를 조정합니다.
+    //AdjustBlockAboveGround(ActiveBlock);
+    
     for (UStaticMeshComponent* Mesh : ActiveBlock->GetBlockMeshes())
     {
         FVector BlockLocation = Mesh->GetComponentLocation();
@@ -514,8 +524,8 @@ void ATetrisBoard::CreateBorderFrames()
             LeftBorder->GetStaticMeshComponent()->SetMaterial(0, BorderMaterial);
             LeftBorder->SetActorScale3D(DefaultScale);
             LeftBorder->GetStaticMeshComponent()->SetMobility(EComponentMobility::Static);
-            UE_LOG(LogTemp, Log, TEXT("왼쪽 경계 생성됨 (높이 %d): 위치: %s, 스케일: %s"), 
-                   z, *LeftLocation.ToString(), *DefaultScale.ToString());
+            //UE_LOG(LogTemp, Log, TEXT("왼쪽 경계 생성됨 (높이 %d): 위치: %s, 스케일: %s"), 
+            //       z, *LeftLocation.ToString(), *DefaultScale.ToString());
         }
         else
         {
@@ -530,8 +540,8 @@ void ATetrisBoard::CreateBorderFrames()
             RightBorder->GetStaticMeshComponent()->SetMaterial(0, BorderMaterial);
             RightBorder->SetActorScale3D(DefaultScale);
             RightBorder->GetStaticMeshComponent()->SetMobility(EComponentMobility::Static);
-            UE_LOG(LogTemp, Log, TEXT("오른쪽 경계 생성됨 (높이 %d): 위치: %s, 스케일: %s"),
-                   z, *RightLocation.ToString(), *DefaultScale.ToString());
+            //UE_LOG(LogTemp, Log, TEXT("오른쪽 경계 생성됨 (높이 %d): 위치: %s, 스케일: %s"),
+            //       z, *RightLocation.ToString(), *DefaultScale.ToString());
         }
         else
         {

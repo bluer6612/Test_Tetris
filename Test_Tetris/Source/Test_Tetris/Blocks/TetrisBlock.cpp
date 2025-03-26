@@ -64,7 +64,7 @@ void ATetrisBlock::Move(const FVector& Offset)
     FVector NewLocation = GetActorLocation() + Offset;
     SetActorLocation(NewLocation);
 
-    UE_LOG(LogTemp, Warning, TEXT("Block moved to: %s"), *NewLocation.ToString());
+    //UE_LOG(LogTemp, Warning, TEXT("Block moved to: %s"), *NewLocation.ToString());
 }
 
 void ATetrisBlock::Rotate()
