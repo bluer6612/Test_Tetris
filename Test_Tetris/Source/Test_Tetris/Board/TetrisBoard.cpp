@@ -42,7 +42,7 @@ void ATetrisBoard::BeginPlay()
         if (ACameraActor* CameraActor = GetWorld()->SpawnActor<ACameraActor>())
         {
             // 카메라의 위치, 회전 설정
-            CameraActor->SetActorLocation(FVector(-2500.f, 500.f, 1000.f)); // 블록 정면을 넓게 보기 위한 위치
+            CameraActor->SetActorLocation(FVector(-2500.f, (BoardWidth / 2) * 100.f, 1250.f)); // 블록 정면을 넓게 보기 위한 위치
             CameraActor->SetActorRotation(FRotator::ZeroRotator);
             PlayerController->SetViewTarget(CameraActor);
         }
@@ -128,10 +128,10 @@ void ATetrisBoard::SpawnBlock()
             }
             ActiveBlock->InitializeBlock(BlockShape);
             
-            UMaterial* LoadedMaterial = LoadObject<UMaterial>(nullptr, TEXT("/Game/BlockMaterial"));
+            UMaterial* LoadedMaterial = LoadObject<UMaterial>(nullptr, TEXT("/Script/Engine.Material'/Game/BlockMaterial.BlockMaterial'"));
             if (!LoadedMaterial)
             {
-                UE_LOG(LogTemp, Error, TEXT("사용자 정의 머티리얼 로드에 실패했습니다: /Game/BlockMaterial"));
+                UE_LOG(LogTemp, Error, TEXT("사용자 정의 머티리얼 로드에 실패했습니다: /Script/Engine.Material'/Game/BlockMaterial.BlockMaterial'"));
                 return;
             }
             
