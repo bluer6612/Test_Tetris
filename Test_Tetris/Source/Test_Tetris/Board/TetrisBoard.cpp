@@ -6,6 +6,7 @@
 #include "Engine/Engine.h"
 #include "GameFramework/PlayerController.h"
 #include "Camera/CameraActor.h"
+#include "Kismet/GameplayStatics.h"
 
 ATetrisBoard::ATetrisBoard()
 {
@@ -50,6 +51,9 @@ void ATetrisBoard::BeginPlay()
     InputComponent->BindAction("Rotate", IE_Pressed, this, &ATetrisBoard::RotateBlock);
     InputComponent->BindAction("HardDrop", IE_Pressed, this, &ATetrisBoard::HardDrop);
 
+    // 경계 프레임 생성
+    CreateBorderFrames();
+    
     SpawnBlock();
 }
 
@@ -211,63 +215,103 @@ void ATetrisBoard::ClearFullRows()
 {
     int NumRowsCleared = 0;
     
-    // 플레이어블 영역 설정 (Z축 기준)
-    const int32 PlayableStartCol = 0;  // 검사 시작 열 (예: 0)
-    const int32 PlayableWidth = BoardWidth;     // 실제 사용되는 열의 개수 (예: 4)
-
-    // 각 행 상태 디버깅을 위해 전체 행 출력 (전체 BoardHeight로 출력)
-    for (int32 row = 0; row < BoardWidth; row++)
+    for (int32 z = 0; z < BoardHeight; z++)
     {
         FString RowState;
-        int TotalTrue = 0;
-        for (int32 col = 0; col < BoardHeight; col++)
+        int TrueCount = 0;
+        
+        for (int32 y = 0; y < BoardWidth; y++)
         {
-            bool cell = Board[row][col];
+            bool cell = Board[y][z];
             RowState += (cell ? "1" : "0");
             if (cell)
-            {
-                TotalTrue++;
-            }
-        }
-        UE_LOG(LogTemp, Warning, TEXT("Row %d: %s (Total true: %d)"), row, *RowState, TotalTrue);
-    }
-    
-    // 하단 행(인덱스 0)부터 상단(인덱스 BoardWidth-1)까지 검사 (Y축이 행)
-    for (int32 row = 0; row < BoardWidth; row++)
-    {
-        int TrueCount = 0;
-        // 플레이어블 영역만 검사
-        for (int32 col = PlayableStartCol; col < PlayableStartCol + PlayableWidth; col++)
-        {
-            if (Board[row][col])
             {
                 TrueCount++;
             }
         }
-        // 플레이어블 영역의 모든 셀이 true라면 해당 행은 완성됨
-        if (TrueCount == PlayableWidth)
+        
+        if (TrueCount == BoardWidth)
         {
-            UE_LOG(LogTemp, Warning, TEXT("Row %d is full and will be cleared."), row);
+            UE_LOG(LogTemp, Warning, TEXT("Height %d is full and will be cleared."), z);
             NumRowsCleared++;
             
-            // 현재 행(row)보다 위쪽에 위치한 행들을 한 칸씩 내려줍니다.
-            for (int32 r = row; r < BoardWidth - 1; r++)
+            // 해당 높이의 모든 블록 메시를 찾아서 제거
+            TArray<AActor*> FoundActors;
+            UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATetrisBlock::StaticClass(), FoundActors);
+            
+            // 먼저 제거할 메시와 이동할 메시를 분리하여 처리
+            TArray<UStaticMeshComponent*> MeshesToDestroy;
+            TArray<FVector> NewLocations;
+            TArray<UStaticMeshComponent*> MeshesToMove;
+
+            for (AActor* Actor : FoundActors)
             {
-                for (int32 col = 0; col < BoardHeight; col++)
+                ATetrisBlock* Block = Cast<ATetrisBlock>(Actor);
+                if (Block && Block != ActiveBlock)
                 {
-                    Board[r][col] = Board[r + 1][col];
+                    // const TArray를 복사하여 사용
+                    const TArray<UStaticMeshComponent*>& Meshes = Block->GetBlockMeshes();
+                    for (int32 i = 0; i < Meshes.Num(); i++)
+                    {
+                        if (UStaticMeshComponent* Mesh = Meshes[i])
+                        {
+                            FVector Location = Mesh->GetComponentLocation();
+                            int32 MeshZ = FMath::RoundToInt(Location.Z / 100.0f);
+                            
+                            if (MeshZ == z)
+                            {
+                                MeshesToDestroy.Add(Mesh);
+                            }
+                            else if (MeshZ > z)
+                            {
+                                MeshesToMove.Add(Mesh);
+                                NewLocations.Add(Location - FVector(0.0f, 0.0f, 100.0f));
+                            }
+                        }
+                    }
                 }
             }
-            // 최상단 행은 빈 상태로 초기화
-            for (int32 col = 0; col < BoardHeight; col++)
+
+            // 메시 제거
+            for (UStaticMeshComponent* Mesh : MeshesToDestroy)
             {
-                Board[BoardWidth - 1][col] = false;
+                if (Mesh && Mesh->IsValidLowLevel())
+                {
+                    Mesh->DestroyComponent();
+                }
             }
-            // 삭제 후, 같은 row 인덱스를 다시 검사합니다.
-            row--;
+
+            // 메시 이동
+            for (int32 i = 0; i < MeshesToMove.Num(); i++)
+            {
+                if (MeshesToMove[i] && MeshesToMove[i]->IsValidLowLevel())
+                {
+                    MeshesToMove[i]->SetWorldLocation(NewLocations[i]);
+                }
+            }
+
+            // 보드 배열 업데이트
+            for (int32 currentZ = z; currentZ < BoardHeight - 1; currentZ++)
+            {
+                for (int32 y = 0; y < BoardWidth; y++)
+                {
+                    Board[y][currentZ] = Board[y][currentZ + 1];
+                }
+            }
+            
+            // 최상단 행을 비움
+            for (int32 y = 0; y < BoardWidth; y++)
+            {
+                Board[y][BoardHeight - 1] = false;
+            }
+            
+            z--; // 행이 제거되었으므로 같은 위치를 다시 검사
         }
+        
+        UE_LOG(LogTemp, Warning, TEXT("Height %d: %s (True count: %d)"), z, *RowState, TrueCount);
     }
-    UE_LOG(LogTemp, Warning, TEXT("Total full rows cleared: %d"), NumRowsCleared);
+    
+    UE_LOG(LogTemp, Warning, TEXT("Total rows cleared: %d"), NumRowsCleared);
 }
 
 void ATetrisBoard::MoveLeft()
@@ -413,4 +457,53 @@ void ATetrisBoard::HardDrop()
 
     ClearFullRows(); // 줄 제거
     SpawnBlock();    // 새 블록 생성
+}
+
+void ATetrisBoard::CreateBorderFrames()
+{
+    // 큐브 메시 에셋 로드
+    UStaticMesh* CubeMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube"));
+    if (!CubeMesh)
+    {
+        return;
+    }
+
+    // 경계 프레임의 머티리얼 (회색)
+    UMaterial* BorderMaterial = LoadObject<UMaterial>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial"));
+
+    // 왼쪽 경계
+    for (int32 z = 0; z < BoardHeight; z++)
+    {
+        UStaticMeshComponent* LeftFrame = NewObject<UStaticMeshComponent>(this);
+        LeftFrame->SetStaticMesh(CubeMesh);
+        LeftFrame->SetMaterial(0, BorderMaterial);
+        LeftFrame->RegisterComponent();
+        
+        // 왼쪽 경계 위치 (Y = -100)
+        FVector Location(-50.0f, -100.0f, z * 100.0f + 50.0f);
+        LeftFrame->SetWorldLocation(Location);
+        
+        // 경계 크기 조정 (두께는 얇게)
+        LeftFrame->SetWorldScale3D(FVector(0.1f, 0.1f, 1.0f));
+        
+        BorderFrames.Add(LeftFrame);
+    }
+
+    // 오른쪽 경계
+    for (int32 z = 0; z < BoardHeight; z++)
+    {
+        UStaticMeshComponent* RightFrame = NewObject<UStaticMeshComponent>(this);
+        RightFrame->SetStaticMesh(CubeMesh);
+        RightFrame->SetMaterial(0, BorderMaterial);
+        RightFrame->RegisterComponent();
+        
+        // 오른쪽 경계 위치 (Y = BoardWidth * 100)
+        FVector Location(-50.0f, BoardWidth * 100.0f, z * 100.0f + 50.0f);
+        RightFrame->SetWorldLocation(Location);
+        
+        // 경계 크기 조정 (두께는 얇게)
+        RightFrame->SetWorldScale3D(FVector(0.1f, 0.1f, 1.0f));
+        
+        BorderFrames.Add(RightFrame);
+    }
 }

@@ -19,6 +19,13 @@ public:
 protected:
     virtual void BeginPlay() override;
 
+    // 경계 프레임을 위한 메시 컴포넌트
+    UPROPERTY()
+    TArray<UStaticMeshComponent*> BorderFrames;
+
+    // 경계 프레임 생성 함수
+    void CreateBorderFrames();
+
 public:
     virtual void Tick(float DeltaTime) override;
 
