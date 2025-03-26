@@ -29,6 +29,13 @@ void ATetrisBoard::BeginPlay()
 {
     Super::BeginPlay();
 
+    // Board 배열 초기화: BoardWidth 만큼 행, 각 행에 BoardHeight개의 false값으로 초기화
+    Board.SetNum(BoardWidth);
+    for (int32 i = 0; i < BoardWidth; i++)
+    {
+        Board[i].Init(false, BoardHeight);
+    }
+
     // 플레이어 컨트롤러와 카메라 액터 설정
     if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
     {
@@ -137,7 +144,7 @@ void ATetrisBoard::SpawnBlock()
                 case 3: ColorToSet = FLinearColor::Green; break;
                 case 4: ColorToSet = FLinearColor::Blue; break;
                 case 5: ColorToSet = FLinearColor(0.29f, 0.f, 0.51f, 1.f); break; // 남색
-                case 6: ColorToSet = FLinearColor(0.56f, 0.f, 1.f, 1.f); break;      // 보라
+                case 6: ColorToSet = FLinearColor(0.56f, 0.f, 1.f, 1.f); break; // 보라
             }
             
             for (UStaticMeshComponent* Mesh : ActiveBlock->GetBlockMeshes())
@@ -232,42 +239,6 @@ bool ATetrisBoard::IsBlockTouchingGround(ATetrisBlock* Block)
     return false;
 }
 
-void ATetrisBoard::AdjustBlockAboveGround(ATetrisBlock* Block)
-{
-    if (!Block)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("AdjustBlockAboveGround 호출 시, Block이 nullptr입니다."));
-        return;
-    }
-    
-    float MinZ = FLT_MAX;
-    for (UStaticMeshComponent* Mesh : Block->GetBlockMeshes())
-    {
-        FBoxSphereBounds Bounds = Mesh->Bounds;
-        float MeshMinZ = Bounds.Origin.Z - Bounds.BoxExtent.Z;
-        UE_LOG(LogTemp, Log, TEXT("메시 최소 Z값: %.1f"), MeshMinZ);
-        if (MeshMinZ < MinZ)
-        {
-            MinZ = MeshMinZ;
-        }
-    }
-    UE_LOG(LogTemp, Log, TEXT("블록의 계산된 최소 Z값: %.1f"), MinZ);
-    
-    // 블록의 최소 Z값을 0.0f로 만들기 위해 필요한 오프셋 계산 (즉, 0.0f - MinZ)
-    float OffsetZ = 0.f - MinZ;
-    UE_LOG(LogTemp, Log, TEXT("계산된 OffsetZ: %.1f"), OffsetZ);
-    
-    if (OffsetZ > 0.f)
-    {
-        Block->SetActorLocation(Block->GetActorLocation() + FVector(0.f, 0.f, OffsetZ));
-        UE_LOG(LogTemp, Log, TEXT("블록이 위로 %.1f 만큼 이동되었습니다 (땅과 정확히 맞닿음)."), OffsetZ);
-    }
-    else
-    {
-        UE_LOG(LogTemp, Log, TEXT("블록의 최소 높이가 이미 0.0f 이상입니다."));
-    }
-}
-
 void ATetrisBoard::ClearFullRows()
 {
     int NumRowsCleared = 0;
@@ -353,6 +324,12 @@ void ATetrisBoard::ClearFullRows()
 
 void ATetrisBoard::MoveLeft()
 {
+    if (bIsGameOver)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("게임 오버 상태입니다. 조작이 불가합니다."));
+        return;
+    }
+    
     if (ActiveBlock)
     {
         FVector Offset = FVector(0.f, -100.f, 0.f); // Y축 왼쪽 이동
@@ -370,6 +347,12 @@ void ATetrisBoard::MoveLeft()
 
 void ATetrisBoard::MoveRight()
 {
+    if (bIsGameOver)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("게임 오버 상태입니다. 조작이 불가합니다."));
+        return;
+    }
+    
     if (ActiveBlock)
     {
         FVector Offset = FVector(0.f, 100.f, 0.f); // Y축 오른쪽 이동
@@ -387,6 +370,12 @@ void ATetrisBoard::MoveRight()
 
 void ATetrisBoard::MoveDown()
 {
+    if (bIsGameOver)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("게임 오버 상태입니다. 조작이 불가합니다."));
+        return;
+    }
+    
     if (ActiveBlock)
     {
         FVector Offset = FVector(0.f, 0.f, -100.f); // Z축 아래로 이동
@@ -398,10 +387,7 @@ void ATetrisBoard::MoveDown()
         }
         else
         {
-            // 충돌 시 먼저 블록의 위치를 조정합니다.
-            //AdjustBlockAboveGround(ActiveBlock);
-            
-            // 충돌 시 블록을 보드에 고정하고 새 블록 생성
+            // 충돌 시 블록 고정 처리 (조작 불가)
             for (UStaticMeshComponent* Mesh : ActiveBlock->GetBlockMeshes())
             {
                 FVector BlockLocation = Mesh->GetComponentLocation();
@@ -412,7 +398,7 @@ void ATetrisBoard::MoveDown()
                     Board[YIndex][ZIndex] = true;
                 }
             }
-            UE_LOG(LogTemp, Log, TEXT("아래쪽 충돌로 인해 블록 고정 후 새 블록 생성합니다."));
+            UE_LOG(LogTemp, Log, TEXT("아래쪽 충돌로 인해 블록을 고정합니다."));
             ClearFullRows();
             SpawnBlock();
         }
@@ -421,6 +407,12 @@ void ATetrisBoard::MoveDown()
 
 void ATetrisBoard::RotateBlock()
 {
+    if (bIsGameOver)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("게임 오버 상태입니다. 조작이 불가합니다."));
+        return;
+    }
+    
     if (ActiveBlock)
     {
         TArray<FVector> OriginalLocations;
@@ -456,7 +448,7 @@ void ATetrisBoard::RotateBlock()
             {
                 ActiveBlock->GetBlockMeshes()[i]->SetRelativeLocation(OriginalLocations[i]);
             }
-            UE_LOG(LogTemp, Warning, TEXT("회전 시 충돌로 인해 회전 취소되었습니다."));
+            UE_LOG(LogTemp, Warning, TEXT("회전 시 충돌로 인해 회전이 취소되었습니다."));
         }
         else
         {
@@ -467,6 +459,12 @@ void ATetrisBoard::RotateBlock()
 
 void ATetrisBoard::HardDrop()
 {
+    if (bIsGameOver)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("게임 오버 상태입니다. 조작이 불가합니다."));
+        return;
+    }
+    
     if (!ActiveBlock)
     {
         UE_LOG(LogTemp, Warning, TEXT("활성 블록이 없습니다."));
@@ -477,8 +475,6 @@ void ATetrisBoard::HardDrop()
     {
         ActiveBlock->Move(Offset);
     }
-    // 충돌 시 블록의 위치를 조정합니다.
-    //AdjustBlockAboveGround(ActiveBlock);
     
     for (UStaticMeshComponent* Mesh : ActiveBlock->GetBlockMeshes())
     {

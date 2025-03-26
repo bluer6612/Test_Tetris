@@ -50,21 +50,19 @@ public:
     // 블록을 바닥으로부터 50.0f 위에 위치시키는 함수 선언
     void AdjustBlockAboveGround(class ATetrisBlock* Block);
 
+    // 테트리스 보드 크기 정의
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tetris Board")
+    int BoardWidth = 10;  // 보드의 가로 크기 (10칸)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tetris Board")
+    int BoardHeight = 20; // 보드의 세로 크기 (20칸)
+
 private:
     void SpawnBlock(); // 블록 생성
     void ClearFullRows(); // 가득 찬 줄 제거
     bool HasCollision(const FVector& Location); // 충돌 감지 함수
 
-    // 테트리스 보드 크기 정의
-    static const int BoardWidth = 10;  // 보드의 가로 크기 (10칸)
-    static const int BoardHeight = 20; // 보드의 세로 크기 (20칸)
-
     // 보드 상태를 저장하는 2D 배열
-    bool Board[BoardWidth][BoardHeight] = { false };
-
-    // 블록 이동 관련 변수
-    float BlockFallInterval = 0.5f; // 블록이 내려오는 간격 (초 단위)
-    float TimeSinceLastFall = 0.0f; // 마지막으로 블록이 내려온 이후 경과 시간
+    TArray<TArray<bool>> Board;
 
     // 테트리스 블록 모양 정의
     TArray<FVector> IBlock = {
