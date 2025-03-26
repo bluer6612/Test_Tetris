@@ -18,6 +18,9 @@ class TEST_TETRIS_API ATetrisBoard : public AActor
 public:
     ATetrisBoard();
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tetris")
+    UMaterial* LoadedMaterial = LoadObject<UMaterial>(nullptr, TEXT("/Game/BlockMaterial"));
+
 protected:
     virtual void BeginPlay() override;
 

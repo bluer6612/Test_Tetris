@@ -128,7 +128,7 @@ void ATetrisBoard::SpawnBlock()
             }
             ActiveBlock->InitializeBlock(BlockShape);
             
-            UMaterial* LoadedMaterial = LoadObject<UMaterial>(nullptr, TEXT("/Script/Engine.Material'/Game/BlockMaterial.BlockMaterial'"));
+            //UMaterial* LoadedMaterial = LoadObject<UMaterial>(nullptr, TEXT("/Script/Engine.Material'/Game/BlockMaterial.BlockMaterial'"));
             if (!LoadedMaterial)
             {
                 UE_LOG(LogTemp, Error, TEXT("사용자 정의 머티리얼 로드에 실패했습니다: /Script/Engine.Material'/Game/BlockMaterial.BlockMaterial'"));
