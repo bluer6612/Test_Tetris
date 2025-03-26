@@ -31,6 +31,9 @@ protected:
     // 경계 프레임 생성 함수
     void CreateBorderFrames();
 
+    UFUNCTION(BlueprintCallable, Category="Tetris")
+    bool IsBlockTouchingGround(class ATetrisBlock* Block);
+
 public:
     virtual void Tick(float DeltaTime) override;
 
@@ -40,6 +43,9 @@ public:
     void MoveDown();
     void RotateBlock();
     void HardDrop();
+
+    // 블록을 바닥으로부터 50.0f 위에 위치시키는 함수 선언
+    void AdjustBlockAboveGround(class ATetrisBlock* Block);
 
 private:
     void SpawnBlock(); // 블록 생성
