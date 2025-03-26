@@ -241,19 +241,19 @@ bool ATetrisBoard::IsBlockTouchingGround(ATetrisBlock* Block)
 
 void ATetrisBoard::ClearFullRows()
 {
-    // 1. 현재 Board 배열에서 full row(모든 셀이 true인 행)의 인덱스를 수집
+    // 1. Board 배열을 통해 채워진(Full) 행의 인덱스를 수집
     TArray<int32> FullRows;
     for (int32 z = 0; z < BoardHeight; z++)
     {
-        int Count = 0;
+        int count = 0;
         for (int32 y = 0; y < BoardWidth; y++)
         {
             if (Board[y][z])
             {
-                Count++;
+                count++;
             }
         }
-        if (Count == BoardWidth)
+        if (count == BoardWidth)
         {
             FullRows.Add(z);
         }
@@ -263,28 +263,29 @@ void ATetrisBoard::ClearFullRows()
     {
         return;
     }
-
+    
     UE_LOG(LogTemp, Warning, TEXT("ClearFullRows: %d 행이 삭제 대상입니다."), FullRows.Num());
-
-    // 2. 모든 ATetrisBlock 액터(현재 떨어지는 블록 포함)를 순회하여 각 큐브(StaticMeshComponent) 처리  
+    
+    // 2. 모든 ATetrisBlock 액터(ActiveBlock 포함)를 순회하면서 각 큐브 처리
     TArray<AActor*> FoundActors;
     UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATetrisBlock::StaticClass(), FoundActors);
-
+    
     for (AActor* Actor : FoundActors)
     {
         if (ATetrisBlock* Block = Cast<ATetrisBlock>(Actor))
         {
-            // 블럭의 모든 큐브를 역순 순회하여 처리
             const TArray<UStaticMeshComponent*>& Meshes = Block->GetBlockMeshes();
+            // 역순 순회 (삭제 안전)
             for (int32 i = Meshes.Num() - 1; i >= 0; i--)
             {
                 UStaticMeshComponent* Mesh = Meshes[i];
                 if (Mesh && Mesh->IsValidLowLevel())
                 {
                     FVector Loc = Mesh->GetComponentLocation();
+                    // 각 셀의 크기가 100.f라고 가정하여 행 인덱스를 계산
                     int32 MeshRow = FMath::RoundToInt(Loc.Z / 100.f);
                     
-                    // full row에 속하는 경우: Z값을 -200.f로 설정하여 화면에서 안 보이게 처리
+                    // full row에 속한다면 큐브를 화면 밖(-200.f)으로 이동 후 삭제
                     if (FullRows.Contains(MeshRow))
                     {
                         FVector NewLoc = Loc;
@@ -295,11 +296,11 @@ void ATetrisBoard::ClearFullRows()
                     }
                     else
                     {
-                        // full row 아래에 몇 줄이 clear되었는지 계산하여 큐브를 아래로 이동
+                        // 이 큐브보다 아래에 몇 개의 full row가 있는지 계산하여 아래로 이동
                         int32 ShiftCount = 0;
-                        for (int32 fr : FullRows)
+                        for (int32 ClearedRow : FullRows)
                         {
-                            if (MeshRow > fr)
+                            if (MeshRow > ClearedRow)
                             {
                                 ShiftCount++;
                             }
@@ -314,41 +315,43 @@ void ATetrisBoard::ClearFullRows()
             }
         }
     }
-
-    // 3. Board 배열 재구성: 초기화 후, 각 유효 큐브의 위치를 기반으로 Board 값을 채움
-    // (기존 Board 배열은 사용하지 않고 블럭의 실제 위치로 보드 상태를 다시 계산합니다.)
+    
+    // 3. Board 배열 재구성 (남은 큐브들의 실제 위치 기준)
+    // 먼저 Board 배열 초기화
     for (int32 y = 0; y < BoardWidth; y++)
     {
         Board[y].Init(false, BoardHeight);
     }
-
+    // 다시 모든 블록 액터의 유효한 큐브 위치를 Board에 반영
     for (AActor* Actor : FoundActors)
     {
         if (ATetrisBlock* Block = Cast<ATetrisBlock>(Actor))
         {
-            for (UStaticMeshComponent* Mesh : Block->GetBlockMeshes())
+            const TArray<UStaticMeshComponent*>& Meshes = Block->GetBlockMeshes();
+            for (UStaticMeshComponent* Mesh : Meshes)
             {
                 if (Mesh && Mesh->IsValidLowLevel() && !Mesh->IsBeingDestroyed())
                 {
                     FVector Loc = Mesh->GetComponentLocation();
-                    int32 YIndex = FMath::FloorToInt(Loc.Y / 100.f);
-                    int32 ZIndex = FMath::FloorToInt(Loc.Z / 100.f);
-                    if (YIndex >= 0 && YIndex < BoardWidth && ZIndex >= 0 && ZIndex < BoardHeight)
+                    int32 yIndex = FMath::FloorToInt(Loc.Y / 100.f);
+                    int32 zIndex = FMath::FloorToInt(Loc.Z / 100.f);
+                    if (yIndex >= 0 && yIndex < BoardWidth && zIndex >= 0 && zIndex < BoardHeight)
                     {
-                        Board[YIndex][ZIndex] = true;
+                        Board[yIndex][zIndex] = true;
                     }
                 }
             }
         }
     }
     
-    // 4. 빈 블럭 액터 정리: 모든 큐브가 제거된 액터 삭제  
+    // 4. 빈 블록 액터 정리: 큐브가 남아있지 않으면 블록 액터 삭제
     for (AActor* Actor : FoundActors)
     {
         if (ATetrisBlock* Block = Cast<ATetrisBlock>(Actor))
         {
             bool bHasCube = false;
-            for (UStaticMeshComponent* Mesh : Block->GetBlockMeshes())
+            const TArray<UStaticMeshComponent*>& Meshes = Block->GetBlockMeshes();
+            for (UStaticMeshComponent* Mesh : Meshes)
             {
                 if (Mesh && Mesh->IsValidLowLevel() && !Mesh->IsBeingDestroyed())
                 {
@@ -359,11 +362,11 @@ void ATetrisBoard::ClearFullRows()
             if (!bHasCube)
             {
                 Block->Destroy();
-                UE_LOG(LogTemp, Log, TEXT("큐브가 없는 블럭 액터 삭제됨"));
+                UE_LOG(LogTemp, Log, TEXT("큐브 없는 블록 액터 삭제됨"));
             }
         }
     }
-
+    
     UE_LOG(LogTemp, Warning, TEXT("총 %d개의 행이 삭제되었습니다."), FullRows.Num());
 }
 
