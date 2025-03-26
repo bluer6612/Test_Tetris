@@ -1,8 +1,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../Blocks/TetrisBlock.h" // TetrisBlock 클래스의 경로
+#include "../Blocks/TetrisBlock.h"
 #include "GameFramework/Actor.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/Material.h"
 #include "TetrisBoard.generated.h"
 
 // 블록 클래스 선언
@@ -18,6 +20,9 @@ public:
 
 protected:
     virtual void BeginPlay() override;
+
+    // 기본 스케일
+    FVector DefaultScale;
 
     // 경계 프레임을 위한 메시 컴포넌트
     UPROPERTY()

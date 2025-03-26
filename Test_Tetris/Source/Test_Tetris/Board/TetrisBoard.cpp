@@ -12,8 +12,14 @@ ATetrisBoard::ATetrisBoard()
 {
     PrimaryActorTick.bCanEverTick = true;
 
-    // 기본적으로 사용할 블록 클래스를 설정 (필요 시)
-    static ConstructorHelpers::FClassFinder<ATetrisBlock> BlockBPClass(TEXT("/Game/Blueprints/BP_TetrisBlock"));
+    // Root 컴포넌트 생성
+    RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+
+    // 기본 스케일 설정
+    DefaultScale = FVector(0.1f, 0.1f, 1.0f);
+
+    // 기본적으로 사용할 블록 클래스를 설정
+    static ConstructorHelpers::FClassFinder<ATetrisBlock> BlockBPClass(TEXT("/Game/TetrisBlock"));
     if (BlockBPClass.Class != nullptr)
     {
         BlockClass = BlockBPClass.Class;
@@ -461,49 +467,59 @@ void ATetrisBoard::HardDrop()
 
 void ATetrisBoard::CreateBorderFrames()
 {
-    // 큐브 메시 에셋 로드
+    // CubeMesh와 BorderMaterial 로드
     UStaticMesh* CubeMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube"));
-    if (!CubeMesh)
+    if(!CubeMesh)
     {
+        UE_LOG(LogTemp, Error, TEXT("Failed to load Cube Mesh from /Engine/BasicShapes/Cube"));
         return;
     }
-
-    // 경계 프레임의 머티리얼 (회색)
+    
     UMaterial* BorderMaterial = LoadObject<UMaterial>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial"));
-
-    // 왼쪽 경계
+    if(!BorderMaterial)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to load Border Material from /Engine/BasicShapes/BasicShapeMaterial"));
+        return;
+    }
+    
+    // 경계 액터 생성: 왼쪽과 오른쪽 경계를 각 z 레벨마다 스폰 (AStaticMeshActor 사용)
     for (int32 z = 0; z < BoardHeight; z++)
     {
-        UStaticMeshComponent* LeftFrame = NewObject<UStaticMeshComponent>(this);
-        LeftFrame->SetStaticMesh(CubeMesh);
-        LeftFrame->SetMaterial(0, BorderMaterial);
-        LeftFrame->RegisterComponent();
+        // 왼쪽 경계 액터 생성
+        FVector LeftLocation = FVector(-50.0f, -100.0f, z * 100.0f + 50.0f);
+        FRotator SpawnRotator = FRotator::ZeroRotator;
+        AStaticMeshActor* LeftBorder = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), LeftLocation, SpawnRotator);
+        if (LeftBorder)
+        {
+            LeftBorder->GetStaticMeshComponent()->SetStaticMesh(CubeMesh);
+            LeftBorder->GetStaticMeshComponent()->SetMaterial(0, BorderMaterial);
+            LeftBorder->SetActorScale3D(DefaultScale);  
+            LeftBorder->GetStaticMeshComponent()->SetMobility(EComponentMobility::Static);
+            UE_LOG(LogTemp, Log, TEXT("Left border spawned at Z: %d, Location: %s, Scale: %s"),
+                z, *LeftLocation.ToString(), *DefaultScale.ToString());
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("Failed to spawn left border at Z: %d"), z);
+        }
         
-        // 왼쪽 경계 위치 (Y = -100)
-        FVector Location(-50.0f, -100.0f, z * 100.0f + 50.0f);
-        LeftFrame->SetWorldLocation(Location);
-        
-        // 경계 크기 조정 (두께는 얇게)
-        LeftFrame->SetWorldScale3D(FVector(0.1f, 0.1f, 1.0f));
-        
-        BorderFrames.Add(LeftFrame);
+        // 오른쪽 경계 액터 생성
+        FVector RightLocation = FVector(-50.0f, BoardWidth * 100.0f, z * 100.0f + 50.0f);
+        AStaticMeshActor* RightBorder = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), RightLocation, SpawnRotator);
+        if (RightBorder)
+        {
+            RightBorder->GetStaticMeshComponent()->SetStaticMesh(CubeMesh);
+            RightBorder->GetStaticMeshComponent()->SetMaterial(0, BorderMaterial);
+            RightBorder->SetActorScale3D(DefaultScale);
+            RightBorder->GetStaticMeshComponent()->SetMobility(EComponentMobility::Static);
+            UE_LOG(LogTemp, Log, TEXT("Right border spawned at Z: %d, Location: %s, Scale: %s"),
+                z, *RightLocation.ToString(), *DefaultScale.ToString());
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("Failed to spawn right border at Z: %d"), z);
+        }
     }
 
-    // 오른쪽 경계
-    for (int32 z = 0; z < BoardHeight; z++)
-    {
-        UStaticMeshComponent* RightFrame = NewObject<UStaticMeshComponent>(this);
-        RightFrame->SetStaticMesh(CubeMesh);
-        RightFrame->SetMaterial(0, BorderMaterial);
-        RightFrame->RegisterComponent();
-        
-        // 오른쪽 경계 위치 (Y = BoardWidth * 100)
-        FVector Location(-50.0f, BoardWidth * 100.0f, z * 100.0f + 50.0f);
-        RightFrame->SetWorldLocation(Location);
-        
-        // 경계 크기 조정 (두께는 얇게)
-        RightFrame->SetWorldScale3D(FVector(0.1f, 0.1f, 1.0f));
-        
-        BorderFrames.Add(RightFrame);
-    }
+    UE_LOG(LogTemp, Warning, TEXT("Border actors created using StaticMeshActor."));
 }
