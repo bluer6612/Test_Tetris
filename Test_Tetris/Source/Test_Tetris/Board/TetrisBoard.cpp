@@ -121,6 +121,13 @@ void ATetrisBoard::SpawnBlock()
             }
             ActiveBlock->InitializeBlock(BlockShape);
             
+            UMaterial* LoadedMaterial = LoadObject<UMaterial>(nullptr, TEXT("/Game/BlockMaterial"));
+            if (!LoadedMaterial)
+            {
+                UE_LOG(LogTemp, Error, TEXT("사용자 정의 머티리얼 로드에 실패했습니다: /Game/BlockMaterial"));
+                return;
+            }
+            
             FLinearColor ColorToSet;
             switch (ShapeType)
             {
@@ -137,10 +144,9 @@ void ATetrisBoard::SpawnBlock()
             {
                 if (Mesh)
                 {
-                    UMaterialInstanceDynamic* DynMat = UMaterialInstanceDynamic::Create(Mesh->GetMaterial(0), this);
+                    UMaterialInstanceDynamic* DynMat = UMaterialInstanceDynamic::Create(LoadedMaterial, this);
                     if (DynMat)
                     {
-                        // "Color" 파라미터가 머티리얼에 존재하는지 확인할 것
                         DynMat->SetVectorParameterValue(TEXT("Color"), ColorToSet);
                         Mesh->SetMaterial(0, DynMat);
                     }
@@ -151,21 +157,21 @@ void ATetrisBoard::SpawnBlock()
             if (HasCollision(ActiveBlock->GetActorLocation()))
             {
                 bIsGameOver = true;
-                UE_LOG(LogTemp, Error, TEXT("Game Over! Block spawned in a collision state."));
+                UE_LOG(LogTemp, Error, TEXT("충돌 상태로 인해 블록 생성에 실패했습니다 (게임 오버)."));
             }
             else
             {
-                UE_LOG(LogTemp, Warning, TEXT("New block spawned at: %s"), *SpawnLocation.ToString());
+                UE_LOG(LogTemp, Warning, TEXT("새 블록 생성 완료: %s"), *SpawnLocation.ToString());
             }
         }
         else
         {
-            UE_LOG(LogTemp, Error, TEXT("Failed to spawn ActiveBlock!"));
+            UE_LOG(LogTemp, Error, TEXT("ActiveBlock 생성에 실패했습니다."));
         }
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("BlockClass is not set!"));
+        UE_LOG(LogTemp, Error, TEXT("BlockClass가 설정되어 있지 않습니다."));
     }
 }
 
@@ -349,6 +355,11 @@ void ATetrisBoard::MoveLeft()
         if (!HasCollision(ActiveBlock->GetActorLocation() + Offset))
         {
             ActiveBlock->Move(Offset);
+            UE_LOG(LogTemp, Log, TEXT("왼쪽으로 이동했습니다."));
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("왼쪽으로 이동 시 충돌이 발생했습니다."));
         }
     }
 }
@@ -361,6 +372,11 @@ void ATetrisBoard::MoveRight()
         if (!HasCollision(ActiveBlock->GetActorLocation() + Offset))
         {
             ActiveBlock->Move(Offset);
+            UE_LOG(LogTemp, Log, TEXT("오른쪽으로 이동했습니다."));
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("오른쪽으로 이동 시 충돌이 발생했습니다."));
         }
     }
 }
@@ -374,10 +390,11 @@ void ATetrisBoard::MoveDown()
         if (!HasCollision(NewLocation))
         {
             ActiveBlock->Move(Offset);
+            UE_LOG(LogTemp, Log, TEXT("아래로 이동했습니다."));
         }
         else
         {
-            // 충돌 시 블록 고정 후 새로운 블록 생성
+            // 충돌 시 블록을 보드에 고정하고 새 블록 생성
             for (UStaticMeshComponent* Mesh : ActiveBlock->GetBlockMeshes())
             {
                 FVector BlockLocation = Mesh->GetComponentLocation();
@@ -388,6 +405,7 @@ void ATetrisBoard::MoveDown()
                     Board[YIndex][ZIndex] = true;
                 }
             }
+            UE_LOG(LogTemp, Log, TEXT("아래쪽 충돌로 인해 블록 고정 후 새 블록 생성합니다."));
             ClearFullRows();
             SpawnBlock();
         }
@@ -431,11 +449,11 @@ void ATetrisBoard::RotateBlock()
             {
                 ActiveBlock->GetBlockMeshes()[i]->SetRelativeLocation(OriginalLocations[i]);
             }
-            UE_LOG(LogTemp, Warning, TEXT("Rotation canceled due to collision."));
+            UE_LOG(LogTemp, Warning, TEXT("회전 시 충돌로 인해 회전 취소되었습니다."));
         }
         else
         {
-            UE_LOG(LogTemp, Warning, TEXT("Block rotated successfully."));
+            UE_LOG(LogTemp, Log, TEXT("블록이 성공적으로 회전되었습니다."));
         }
     }
 }
@@ -444,6 +462,7 @@ void ATetrisBoard::HardDrop()
 {
     if (!ActiveBlock)
     {
+        UE_LOG(LogTemp, Warning, TEXT("활성 블록이 없습니다."));
         return;
     }
     FVector Offset = FVector(0.f, 0.f, -100.f);
@@ -467,60 +486,58 @@ void ATetrisBoard::HardDrop()
 
 void ATetrisBoard::CreateBorderFrames()
 {
-    // CubeMesh와 BorderMaterial 로드
+    // CubeMesh와 경계 머티리얼 로드
     UStaticMesh* CubeMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube"));
     if (!CubeMesh)
     {
-        UE_LOG(LogTemp, Error, TEXT("Failed to load Cube Mesh from /Engine/BasicShapes/Cube"));
+        UE_LOG(LogTemp, Error, TEXT("Cube 메시 로드에 실패했습니다: /Engine/BasicShapes/Cube"));
         return;
     }
     
     UMaterial* BorderMaterial = LoadObject<UMaterial>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial"));
     if (!BorderMaterial)
     {
-        UE_LOG(LogTemp, Error, TEXT("Failed to load Border Material from /Engine/BasicShapes/BasicShapeMaterial"));
+        UE_LOG(LogTemp, Error, TEXT("경계 머티리얼 로드에 실패했습니다: /Engine/BasicShapes/BasicShapeMaterial"));
         return;
     }
     
-    // 경계 액터 생성 (각 z 레벨마다 좌우 생성)
+    // 각 z 레벨마다 좌우 경계 액터 생성
     for (int32 z = 0; z < BoardHeight; z++)
     {
         FRotator SpawnRotator = FRotator::ZeroRotator;
         
-        // 왼쪽 경계 생성: X=0, Y=50.0f, Z = z*100.f
+        // 왼쪽 경계 생성: X=0, Y=-50.0f, Z = z*100.f
         FVector LeftLocation = FVector(0.f, -50.f, z * 100.f);
-        if (AStaticMeshActor* LeftBorder = GetWorld()->SpawnActor<AStaticMeshActor>(
-                AStaticMeshActor::StaticClass(), LeftLocation, SpawnRotator))
+        if (AStaticMeshActor* LeftBorder = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), LeftLocation, SpawnRotator))
         {
             LeftBorder->GetStaticMeshComponent()->SetStaticMesh(CubeMesh);
             LeftBorder->GetStaticMeshComponent()->SetMaterial(0, BorderMaterial);
             LeftBorder->SetActorScale3D(DefaultScale);
             LeftBorder->GetStaticMeshComponent()->SetMobility(EComponentMobility::Static);
-            UE_LOG(LogTemp, Log, TEXT("Left border spawned at Z: %d, Location: %s, Scale: %s"),
-                z, *LeftLocation.ToString(), *DefaultScale.ToString());
+            UE_LOG(LogTemp, Log, TEXT("왼쪽 경계 생성됨 (높이 %d): 위치: %s, 스케일: %s"), 
+                   z, *LeftLocation.ToString(), *DefaultScale.ToString());
         }
         else
         {
-            UE_LOG(LogTemp, Error, TEXT("Failed to spawn left border at Z: %d"), z);
+            UE_LOG(LogTemp, Error, TEXT("높이 %d에서 왼쪽 경계 생성에 실패했습니다."), z);
         }
         
         // 오른쪽 경계 생성: X=0, Y=BoardWidth * 100.f - 50.0f, Z = z*100.f
         FVector RightLocation = FVector(0.f, BoardWidth * 100.f - 50.f, z * 100.f);
-        if (AStaticMeshActor* RightBorder = GetWorld()->SpawnActor<AStaticMeshActor>(
-                AStaticMeshActor::StaticClass(), RightLocation, SpawnRotator))
+        if (AStaticMeshActor* RightBorder = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), RightLocation, SpawnRotator))
         {
             RightBorder->GetStaticMeshComponent()->SetStaticMesh(CubeMesh);
             RightBorder->GetStaticMeshComponent()->SetMaterial(0, BorderMaterial);
             RightBorder->SetActorScale3D(DefaultScale);
             RightBorder->GetStaticMeshComponent()->SetMobility(EComponentMobility::Static);
-            UE_LOG(LogTemp, Log, TEXT("Right border spawned at Z: %d, Location: %s, Scale: %s"),
-                z, *RightLocation.ToString(), *DefaultScale.ToString());
+            UE_LOG(LogTemp, Log, TEXT("오른쪽 경계 생성됨 (높이 %d): 위치: %s, 스케일: %s"),
+                   z, *RightLocation.ToString(), *DefaultScale.ToString());
         }
         else
         {
-            UE_LOG(LogTemp, Error, TEXT("Failed to spawn right border at Z: %d"), z);
+            UE_LOG(LogTemp, Error, TEXT("높이 %d에서 오른쪽 경계 생성에 실패했습니다."), z);
         }
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Border actors created using StaticMeshActor."));
+    UE_LOG(LogTemp, Warning, TEXT("StaticMeshActor를 사용하여 경계 액터 생성이 완료되었습니다."));
 }

@@ -21,6 +21,9 @@ public:
 protected:
     virtual void BeginPlay() override;
 
+    // 경계 프레임 생성 함수
+    void CreateBorderFrames();
+
     // 기본 스케일
     FVector DefaultScale;
 
@@ -28,8 +31,8 @@ protected:
     UPROPERTY()
     TArray<UStaticMeshComponent*> BorderFrames;
 
-    // 경계 프레임 생성 함수
-    void CreateBorderFrames();
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tetris")
+    TSubclassOf<ATetrisBlock> BlockClass; // 블록 클래스 설정
 
     UFUNCTION(BlueprintCallable, Category="Tetris")
     bool IsBlockTouchingGround(class ATetrisBlock* Block);
@@ -113,11 +116,6 @@ private:
         FVector(100, 0, 100)
     };
 
-public:
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tetris")
-    TSubclassOf<ATetrisBlock> BlockClass; // 블록 클래스 설정
-
-private:
     ATetrisBlock* ActiveBlock; // 현재 활성 블록
     bool bIsGameOver = false; // 게임 오버 상태
 };
