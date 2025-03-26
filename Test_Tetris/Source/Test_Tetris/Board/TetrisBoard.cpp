@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Camera/CameraActor.h"
 #include "Kismet/GameplayStatics.h"
+#include "Engine/StaticMeshActor.h"
 
 ATetrisBoard::ATetrisBoard()
 {
