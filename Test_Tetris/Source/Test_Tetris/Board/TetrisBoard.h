@@ -47,9 +47,6 @@ public:
     void RotateBlock();
     void HardDrop();
 
-    // 블록을 바닥으로부터 50.0f 위에 위치시키는 함수 선언
-    void AdjustBlockAboveGround(class ATetrisBlock* Block);
-
     // 테트리스 보드 크기 정의
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tetris Board")
     int BoardWidth = 10;  // 보드의 가로 크기 (10칸)
@@ -63,6 +60,10 @@ private:
 
     // 보드 상태를 저장하는 2D 배열
     TArray<TArray<bool>> Board;
+
+    // 블록 이동 관련 변수
+    float BlockFallInterval = 0.5f; // 블록이 내려오는 간격 (초 단위)
+    float TimeSinceLastFall = 0.0f; // 마지막으로 블록이 내려온 이후 경과 시간
 
     // 테트리스 블록 모양 정의
     TArray<FVector> IBlock = {

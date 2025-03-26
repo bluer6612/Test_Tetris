@@ -257,9 +257,10 @@ void ATetrisBoard::ClearFullRows()
         }
         if (TrueCount == BoardWidth)
         {
-            UE_LOG(LogTemp, Warning, TEXT("Height %d is full and will be cleared."), z);
+            UE_LOG(LogTemp, Warning, TEXT("높이 %d의 행이 완전히 채워져 삭제됩니다."), z);
             NumRowsCleared++;
 
+            // 모든 ATetrisBlock 액터를 검색하여 해당 행에 포함된 큐브(메쉬) 삭제
             TArray<AActor*> FoundActors;
             UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATetrisBlock::StaticClass(), FoundActors);
             TArray<UStaticMeshComponent*> MeshesToDestroy;
@@ -269,7 +270,10 @@ void ATetrisBoard::ClearFullRows()
             {
                 if (ATetrisBlock* Block = Cast<ATetrisBlock>(Actor))
                 {
-                    if (Block == ActiveBlock) continue;
+                    if (Block == ActiveBlock)
+                    {
+                        continue;
+                    }
                     const TArray<UStaticMeshComponent*>& Meshes = Block->GetBlockMeshes();
                     for (UStaticMeshComponent* Mesh : Meshes)
                     {
@@ -290,6 +294,7 @@ void ATetrisBoard::ClearFullRows()
                     }
                 }
             }
+            // 삭제 대상 컴포넌트 제거
             for (UStaticMeshComponent* Mesh : MeshesToDestroy)
             {
                 if (Mesh && Mesh->IsValidLowLevel())
@@ -297,6 +302,7 @@ void ATetrisBoard::ClearFullRows()
                     Mesh->DestroyComponent();
                 }
             }
+            // 이동 대상 컴포넌트 위치 변경
             for (int32 i = 0; i < MeshesToMove.Num(); i++)
             {
                 if (MeshesToMove[i] && MeshesToMove[i]->IsValidLowLevel())
@@ -304,6 +310,7 @@ void ATetrisBoard::ClearFullRows()
                     MeshesToMove[i]->SetWorldLocation(NewLocations[i]);
                 }
             }
+            // 보드 배열 업데이트: 위 행들을 한 칸씩 내려옴
             for (int32 currentZ = z; currentZ < BoardHeight - 1; currentZ++)
             {
                 for (int32 y = 0; y < BoardWidth; y++)
@@ -316,10 +323,37 @@ void ATetrisBoard::ClearFullRows()
                 Board[y][BoardHeight - 1] = false;
             }
             z--;
+
+            // 추가: 각 블록 액터에 대해 모든 큐브 컴포넌트가 제거되었으면 액터 자체를 삭제
+            for (AActor* Actor : FoundActors)
+            {
+                if (ATetrisBlock* Block = Cast<ATetrisBlock>(Actor))
+                {
+                    if (Block == ActiveBlock)
+                    {
+                        continue;
+                    }
+                    bool bAllDestroyed = true;
+                    for (UStaticMeshComponent* Mesh : Block->GetBlockMeshes())
+                    {
+                        if (Mesh && Mesh->IsValidLowLevel() && !Mesh->IsBeingDestroyed())
+                        {
+                            bAllDestroyed = false;
+                            break;
+                        }
+                    }
+                    if (bAllDestroyed)
+                    {
+                        Block->Destroy();
+                        UE_LOG(LogTemp, Log, TEXT("모든 큐브가 제거되어 블록 액터가 삭제되었습니다."));
+                    }
+                }
+            }
         }
-        //UE_LOG(LogTemp, Warning, TEXT("Height %d: %s (True count: %d)"), z, *RowState, TrueCount);
+        // 선택 사항: 행 상태 로그도 한글로 출력
+        // UE_LOG(LogTemp, Warning, TEXT("높이 %d: %s (채워진 셀 개수: %d)"), z, *RowState, TrueCount);
     }
-    UE_LOG(LogTemp, Warning, TEXT("터진 줄의 갯수: %d"), NumRowsCleared);
+    UE_LOG(LogTemp, Warning, TEXT("삭제된 행의 갯수: %d"), NumRowsCleared);
 }
 
 void ATetrisBoard::MoveLeft()
